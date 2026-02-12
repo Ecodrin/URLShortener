@@ -1,0 +1,37 @@
+services:
+  server:
+    build: .
+    ports:
+    - "8080:8080"
+    environment:
+      - HOST=${HOST}
+      - PORT=${PORT}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+    volumes:
+      - .:/linkshorteningservice
+    networks:
+      - net
+    depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    shm_size: 128mb
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+    networks:
+      - net
+    volumes:
+      - ./pgdata:/var/lib/postgresql/18/data
+
+networks:
+  net:
+    driver: bridge
