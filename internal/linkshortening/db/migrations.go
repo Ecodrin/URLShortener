@@ -42,7 +42,7 @@ func CreateLinkTable(DB *sql.DB) error {
 			id SERIAL PRIMARY KEY,
 			src TEXT,
 			dst TEXT,
-			user_id INTEGER,
+			user_id INTEGER NULL,
 			FOREIGN KEY (user_id) REFERENCES users(id)
 		)
 	`
