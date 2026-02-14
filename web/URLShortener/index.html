@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="src/style.css" />
+    <title>urlshortener</title>
+  </head>
+  <body>
+  <div class="wrapper">
+    <div class="tabs">
+      <button class="tab-button active" data-tab="tab1">Short link</button>
+      <button class="tab-button" data-tab="tab2">QR code</button>
+    </div>
+  </div>
+
+  <div class="tab-content">
+    <div class="tab-pane active" id="tab1">
+      <div class="url_field">
+        <label class="url_label" for="url"></label>
+        <input class="ulr_input" type="text" id="url" placeholder="Enter a URL" />
+      </div>
+    </div>
+    <div class="tab-pane" id="tab2">
+      <div class="qr_field">
+        <label class="qr_label" for="qr-code"></label>
+        <input class="qr_input" type="text" id="qr-code" placeholder="Enter a URL" />
+      </div>
+    </div>
+  </div>
+  <script src="src/main.js"></script>
+  </body>
+</html>
