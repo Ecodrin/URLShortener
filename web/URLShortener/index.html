@@ -1,33 +1,30 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="src/style.css" />
-    <title>urlshortener</title>
-  </head>
-  <body>
-  <div class="wrapper">
-    <div class="tabs">
-      <button class="tab-button active" data-tab="tab1">Short link</button>
-      <button class="tab-button" data-tab="tab2">QR code</button>
-    </div>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="src/style.css" />
+  <title>Сокращатель ссылок + QR-код</title>
+</head>
+<body>
+<div class="wrapper">
+  <h1>🔗 Сократи и создай QR</h1>
+
+  <div class="input-group">
+    <input type="text" id="long-url" class="url-input" placeholder="Вставьте длинную ссылку..." />
+    <button id="generate-btn" class="btn">✨ Создать QR‑код</button>
   </div>
 
-  <div class="tab-content">
-    <div class="tab-pane active" id="tab1">
-      <div class="url_field">
-        <label class="url_label" for="url"></label>
-        <input class="ulr_input" type="text" id="url" placeholder="Enter a URL" />
-      </div>
-    </div>
-    <div class="tab-pane" id="tab2">
-      <div class="qr_field">
-        <label class="qr_label" for="qr-code"></label>
-        <input class="qr_input" type="text" id="qr-code" placeholder="Enter a URL" />
-      </div>
-    </div>
+  <div class="short-url-group">
+    <input type="text" id="short-url" class="short-url-field" readonly placeholder="Короткая ссылка появится здесь" />
+    <button id="copy-btn" class="copy-btn">📋 Копировать</button>
   </div>
-  <script src="src/main.js"></script>
-  </body>
+
+  <div class="qr-container">
+    <img id="qr-image" src="" alt="QR-код будет здесь" />
+  </div>
+</div>
+
+<script src="src/main.js"></script>
+</body>
 </html>
