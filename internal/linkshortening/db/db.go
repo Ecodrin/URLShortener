@@ -59,7 +59,7 @@ func GetDstLink(DB *sql.DB, srcLink string) (*handlers.Link, error) {
 	}, nil
 }
 
-func GetDstLinkTX(Tx *sql.Tx, srcLink string) (*handlers.Link, error) {
+func GetDstLinkTX(Tx *sql.Tx, srcLink string, UserId sql.NullInt64) (*handlers.Link, error) {
 	var dstLink string
 	for true {
 		dstLink = uuid.NewString()[:8]
@@ -75,18 +75,27 @@ func GetDstLinkTX(Tx *sql.Tx, srcLink string) (*handlers.Link, error) {
 	return &handlers.Link{
 		SrcLink: srcLink,
 		DstLink: dstLink,
-		UserId:  sql.NullInt64{Valid: false},
+		UserId:  UserId,
 	}, nil
 }
 
-func CreateDstLink(DB *sql.DB, link string) (*handlers.Link, error) {
+func CreateDstLink(DB *sql.DB, link string, userLogin string) (*handlers.Link, error) {
 	tx, err := DB.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	linkHandler, err := GetDstLinkTX(tx, link)
+	userId := sql.NullInt64{Valid: false}
+	if userLogin != "" {
+		user, err := GetUserByLoginTx(tx, userLogin)
+		if err != nil {
+			return nil, err
+		}
+		userId = sql.NullInt64{Int64: int64(user.Id), Valid: true}
+	}
+
+	linkHandler, err := GetDstLinkTX(tx, link, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -163,6 +172,18 @@ func InsertUser(DB *sql.DB, user handlers.User) error {
 func GetUserById(DB *sql.DB, id int) (*handlers.User, error) {
 	query := "SELECT id, login, password FROM users WHERE id = $1"
 	row := DB.QueryRow(query, id)
+	var user handlers.User
+
+	err := row.Scan(&user.Id, &user.Login, &user.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func GetUserByLoginTx(Tx *sql.Tx, login string) (*handlers.User, error) {
+	query := "SELECT id, login, password FROM users WHERE login = $1"
+	row := Tx.QueryRow(query, login)
 	var user handlers.User
 
 	err := row.Scan(&user.Id, &user.Login, &user.Password)

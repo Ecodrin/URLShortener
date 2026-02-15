@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"database/sql"
 
@@ -23,6 +24,16 @@ type Server struct {
 	DB *sql.DB
 }
 
+func GetParentPath(r *http.Request) string {
+	a := "http"
+	if r.TLS != nil {
+		a = "https"
+	}
+	fullPath := fmt.Sprintf("%s://%s%s", a, r.Host, r.RequestURI)
+	i := strings.LastIndex(fullPath, "/")
+	return fullPath[:i+1]
+}
+
 func (server *Server) CreateNewLink(w http.ResponseWriter, r *http.Request) {
 	var s handlers.LinkRequest
 	err := json.NewDecoder(r.Body).Decode(&s)
@@ -32,14 +43,15 @@ func (server *Server) CreateNewLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	server.logger.Println("get src link", s.Link)
-	link, err := db.CreateDstLink(server.DB, s.Link)
+	// TODO вставить обработку JWT
+	link, err := db.CreateDstLink(server.DB, s.Link, "")
 	if err != nil {
 		server.logger.Println("error in CreateNewLink CreateDstLink: ", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	s.Link = link.DstLink
+	s.Link = GetParentPath(r) + link.DstLink
 	err = json.NewEncoder(w).Encode(s)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
