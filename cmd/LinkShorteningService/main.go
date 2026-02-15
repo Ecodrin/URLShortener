@@ -1,10 +1,9 @@
 package main
 
 import (
-	server "linkshorteningservice/internal/LinkShorteningServer/server"
-	"os"
+	server "linkshorteningservice/internal/linkshortening/server"
 )
 
 func main() {
-	server.StartServer(os.Getenv("HOST"), os.Getenv("PORT"))
+	server.StartServer()
 }
