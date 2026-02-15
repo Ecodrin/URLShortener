@@ -24,14 +24,20 @@ type Server struct {
 	DB *sql.DB
 }
 
-func GetParentPath(r *http.Request) string {
-	a := "http"
-	if r.TLS != nil {
-		a = "https"
+func GetNewPath(r *http.Request, new_id string) string {
+	a := r.Header.Get("X-Forwarded-Proto")
+	if a == "" {
+		a = "http"
 	}
-	fullPath := fmt.Sprintf("%s://%s%s", a, r.Host, r.RequestURI)
-	i := strings.LastIndex(fullPath, "/")
-	return fullPath[:i+1]
+	new_path := fmt.Sprintf("%s://%s/%s", a, r.Header.Get("X-Forwarded-Host"), new_id)
+	return new_path
+}
+
+func IsValidPath(path string) bool {
+	if !strings.HasPrefix(path, "http") {
+		return false
+	}
+	return true
 }
 
 func (server *Server) CreateNewLink(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +49,11 @@ func (server *Server) CreateNewLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	server.logger.Println("get src link", s.Link)
+	if !IsValidPath(s.Link) {
+		http.Error(w, "bad link", http.StatusBadRequest)
+		server.logger.Println("link", s.Link, "was not validated")
+		return
+	}
 	// TODO вставить обработку JWT
 	link, err := db.CreateDstLink(server.DB, s.Link, "")
 	if err != nil {
@@ -51,7 +62,7 @@ func (server *Server) CreateNewLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.Link = GetParentPath(r) + link.DstLink
+	s.Link = GetNewPath(r, link.DstLink)
 	err = json.NewEncoder(w).Encode(s)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
