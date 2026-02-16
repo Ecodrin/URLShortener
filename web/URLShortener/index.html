@@ -7,22 +7,26 @@
   <title>Сокращатель ссылок + QR-код</title>
 </head>
 <body>
+<button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
+
 <div class="wrapper">
   <h1>🔗 Сократи и создай QR</h1>
 
   <div class="input-group">
     <input type="text" id="long-url" class="url-input" placeholder="Вставьте длинную ссылку..." />
-    <button id="generate-btn" class="btn">✨ Создать QR‑код</button>
+    <button id="generate-btn" class="btn">✨ Создать короткую ссылку.</button>
   </div>
 
   <div class="short-url-group">
     <input type="text" id="short-url" class="short-url-field" readonly placeholder="Короткая ссылка появится здесь" />
-    <button id="copy-btn" class="copy-btn">📋 Копировать</button>
+    <button id="copy-btn" class="copy-btn">Копировать</button>
   </div>
 
   <div class="qr-container">
     <img id="qr-image" src="" alt="QR-код будет здесь" />
   </div>
+
+  <button id="download-qr-btn" class="btn download-btn">📥 Скачать QR-код</button>
 </div>
 
 <script src="src/main.js"></script>
