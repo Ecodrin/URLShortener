@@ -112,6 +112,33 @@ func CreateDstLink(DB *sql.DB, link string, userLogin string) (*handlers.Link, e
 	return linkHandler, nil
 }
 
+func CreateUser(DB *sql.DB, user handlers.User) (bool, error) {
+	tx, err := DB.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
+	userH, err := GetUserByLoginTx(tx, user.Login)
+	if err == nil && userH != nil {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	err = InsertUserTx(tx, user)
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func GetLinkById(DB *sql.DB, id int) (*handlers.Link, error) {
 	query := "SELECT id, src, dst, user_id FROM users WHERE id = $1"
 	row := DB.QueryRow(query, id)
@@ -169,6 +196,12 @@ func InsertUser(DB *sql.DB, user handlers.User) error {
 	return err
 }
 
+func InsertUserTx(Tx *sql.Tx, user handlers.User) error {
+	query := "INSERT INTO users (login, password) VALUES ($1, $2)"
+	_, err := Tx.Exec(query, user.Login, user.Password)
+	return err
+}
+
 func GetUserById(DB *sql.DB, id int) (*handlers.User, error) {
 	query := "SELECT id, login, password FROM users WHERE id = $1"
 	row := DB.QueryRow(query, id)
@@ -184,6 +217,18 @@ func GetUserById(DB *sql.DB, id int) (*handlers.User, error) {
 func GetUserByLoginTx(Tx *sql.Tx, login string) (*handlers.User, error) {
 	query := "SELECT id, login, password FROM users WHERE login = $1"
 	row := Tx.QueryRow(query, login)
+	var user handlers.User
+
+	err := row.Scan(&user.Id, &user.Login, &user.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func GetUserByLogin(DB *sql.DB, login string) (*handlers.User, error) {
+	query := "SELECT id, login, password FROM users WHERE login = $1"
+	row := DB.QueryRow(query, login)
 	var user handlers.User
 
 	err := row.Scan(&user.Id, &user.Login, &user.Password)
