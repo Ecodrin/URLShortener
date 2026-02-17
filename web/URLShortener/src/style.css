@@ -5,8 +5,12 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-  background: linear-gradient(145deg, #f8faff 0%, #eef2f7 100%);
+  font-family: 'Segoe UI', 'Helvetica Neue', Roboto, sans-serif;
+  background: radial-gradient(circle at 20% 30%, #b8e1ff, #7bc5f5 40%, #4c9fe8 80%);
+  background-image:
+          radial-gradient(circle at 30% 40%, rgba(255,255,255,0.3) 0%, transparent 30%),
+          repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 6px);
+  background-blend-mode: overlay;
 }
 
 .wrapper {
@@ -18,9 +22,12 @@ body {
 }
 
 h1 {
-  color: #1e2b3a;
+  color: #ffffff;
+  text-shadow: 0 3px 10px rgba(0, 80, 150, 0.5), 0 0 20px rgba(255,255,255,0.8);
   margin-bottom: 30px;
   font-weight: 600;
+  font-size: 2.5rem;
+  letter-spacing: -0.5px;
 }
 
 .main-content {
@@ -32,15 +39,16 @@ h1 {
 }
 
 .card {
-  background: rgba(255,255,255,0.6);
-  backdrop-filter: blur(4px);
-  border-radius: 32px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-radius: 40px;
   padding: 30px 25px;
-  box-shadow: 0 20px 40px -10px rgba(0,20,50,0.15);
+  box-shadow: 0 25px 50px -8px rgba(0, 100, 200, 0.4), inset 0 2px 4px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.05);
+  border: 2px solid rgba(255,255,255,0.7);
   transition: all 0.2s ease;
-  border: 1px solid rgba(255,255,255,0.5);
 }
-
 .left-column,
 .right-column {
   flex: 1 1 350px;
@@ -48,7 +56,7 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 30px; 
+  gap: 30px;
   box-sizing: border-box;
 }
 
@@ -62,53 +70,59 @@ h1 {
 
 .url-input {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 16px 20px 16px 50px;
   font-size: 18px;
   border: none;
-  border-bottom: 3px solid #d0d9e8;
-  border-radius: 20px 20px 8px 8px;
-  background-color: white;
-  box-shadow: 0 10px 25px -8px rgba(0,0,0,0.1);
-  transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="%233b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>');
+  border-bottom: 3px solid #c0e0ff;
+  border-radius: 30px 30px 15px 15px;
+  background-color: rgba(255,255,255,0.9);
+  box-shadow: 0 10px 25px -8px rgba(0, 160, 250, 0.5), inset 0 2px 5px rgba(255,255,255,0.8), inset 0 -2px 3px rgba(0,0,0,0.1);
+  transition: all 0.3s;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%2333aaff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>');
   background-repeat: no-repeat;
   background-position: 15px center;
-  background-size: 22px;
-  box-sizing: border-box;
+  background-size: 24px;
+  color: #01447e;
+  font-weight: 500;
 }
 
 .url-input:focus {
   outline: none;
-  border-bottom: 3px solid #007bff;
-  box-shadow: 0 18px 30px -12px #007bff;
+  border-bottom: 3px solid #ffbb33;
+  box-shadow: 0 18px 30px -12px #ffaa00, inset 0 0 10px #fff3c9;
+  background-color: #ffffff;
   transform: scale(1.01);
 }
 
 .url-input::placeholder {
-  color: #a3b1c6;
+  color: #7fa9c7;
   font-weight: 300;
-  letter-spacing: 0.3px;
+  font-style: italic;
 }
 
 .btn {
-  padding: 14px 40px;
-  background: #007bff;
+  padding: 16px 45px;
+  background: linear-gradient(145deg, #3ecf8e, #2ba9d9);
   color: white;
   border: none;
-  border-radius: 40px;
+  border-radius: 60px;
   font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 15px 25px -8px rgba(0, 180, 255, 0.6), inset 0 -3px 0 rgba(0,0,0,0.1), inset 0 3px 10px rgba(255,255,255,0.7);
+  transition: all 0.2s ease;
   width: fit-content;
+  text-transform: uppercase;
+  border: 2px solid rgba(255,255,255,0.6);
 }
 
 .btn:hover {
-  background: #0056b3;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 25px rgba(0, 86, 179, 0.4);
+  background: linear-gradient(145deg, #2ba9d9, #3ecf8e);
+  transform: translateY(-3px);
+  box-shadow: 0 22px 35px -10px #00ace0, inset 0 -2px 5px rgba(0,0,0,0.2), inset 0 4px 15px white;
 }
 
 .short-url-group {
@@ -125,87 +139,102 @@ h1 {
   max-width: 350px;
   padding: 14px 20px;
   font-size: 16px;
-  border: 2px solid #e0e7f0;
-  border-radius: 40px;
-  background: white;
-  color: #2c3e50;
-  font-weight: 500;
+  border: 3px solid rgba(255,255,255,0.9);
+  border-radius: 50px;
+  background: rgba(255,255,255,0.8);
+  color: #015c9b;
+  font-weight: 600;
   text-align: center;
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.03);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.1), 0 8px 18px rgba(0,160,255,0.3);
   transition: all 0.2s;
   box-sizing: border-box;
+  backdrop-filter: blur(5px);
 }
 
 .short-url-field:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: #ffdd44;
+  background: white;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.1), 0 0 25px #ffdd44;
 }
 
 .copy-btn {
-  padding: 12px 25px;
-  background: white;
-  border: 2px solid #007bff;
-  border-radius: 40px;
-  color: #007bff;
-  font-weight: 600;
+  padding: 12px 30px;
+  background: linear-gradient(145deg, #ffffff, #e0f0ff);
+  border: 3px solid #3aa8ff;
+  border-radius: 60px;
+  color: #006bb3;
+  font-weight: 700;
   font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 8px 15px rgba(0,150,255,0.3), inset 0 -2px 5px rgba(0,0,0,0.1), inset 0 2px 8px white;
+  text-transform: uppercase;
 }
 
 .copy-btn:hover {
-  background: #007bff;
-  color: white;
+  background: linear-gradient(145deg, #e0f0ff, #ffffff);
+  border-color: #ffaa22;
+  color: #004c99;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px #ffaa22, inset 0 2px 8px white;
 }
 
 .qr-container {
   padding: 20px;
-  background: white;
-  border-radius: 30px;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(8px);
+  border-radius: 50px;
+  box-shadow: 0 20px 40px rgba(0, 150, 200, 0.5), inset 0 2px 10px rgba(255,255,255,0.8);
   display: inline-block;
+  border: 3px solid rgba(255,255,255,0.9);
 }
 
 .qr-container img {
   width: 200px;
   height: 200px;
-  border-radius: 16px;
+  border-radius: 30px;
   display: block;
+  box-shadow: 0 0 0 4px white, 0 20px 30px rgba(0,0,0,0.2);
 }
 
 .download-btn {
-  margin-top: 0; 
-  background: #a7288e;
-  box-shadow: 0 8px 20px rgba(72, 40, 167, 0.3);
+  margin-top: 0;
+  background: linear-gradient(145deg, #da70d6, #aa4fbe);
+  box-shadow: 0 15px 25px -8px #c058d0, inset 0 -3px 0 rgba(0,0,0,0.2), inset 0 3px 10px #fad0ff;
+  border-color: #ffc0ff;
 }
 
 .download-btn:hover {
-  background: #882154;
-  box-shadow: 0 12px 25px rgba(69, 33, 136, 0.4);
+  background: linear-gradient(145deg, #aa4fbe, #da70d6);
+  box-shadow: 0 22px 35px -10px #b23cd8, inset 0 -2px 5px rgba(0,0,0,0.2), inset 0 4px 15px white;
 }
-
 
 .auth-btn {
   position: absolute;
   top: 20px;
   right: 20px;
-  padding: 10px 24px;
-  background: transparent;
-  border: 2px solid #007bff;
-  border-radius: 40px;
-  color: #007bff;
-  font-weight: 600;
+  padding: 12px 28px;
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(12px);
+  border: 3px solid rgba(255,255,255,0.8);
+  border-radius: 50px;
+  color: white;
+  font-weight: 700;
   font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
   z-index: 100;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 20px rgba(0, 150, 255, 0.4);
 }
 
 .auth-btn:hover {
-  background: #007bff;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 15px rgba(0, 123, 255, 0.2);
+  background: rgba(255,255,255,0.5);
+  color: #002b4f;
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px #0077ff;
+  border-color: white;
 }
 
 @media (max-width: 768px) {
@@ -222,6 +251,9 @@ h1 {
   .card {
     padding: 25px 20px;
   }
+  h1 {
+    font-size: 2rem;
+  }
 }
 
 @media (max-width: 600px) {
@@ -233,8 +265,5 @@ h1 {
   }
   body {
     padding-top: 10px;
-  }
-  h1 {
-    font-size: 1.8rem;
   }
 }
