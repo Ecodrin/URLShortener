@@ -55,8 +55,17 @@ func (server *Server) CreateNewLinkHandler(w http.ResponseWriter, r *http.Reques
 		server.logger.Println("link", s.Link, "was not validated")
 		return
 	}
-	// TODO вставить обработку JWT
-	link, err := db.CreateDstLink(server.DB, s.Link, "")
+
+	cookie, err := r.Cookie("session_id")
+	var userLogin string
+	if err != http.ErrNoCookie {
+		user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
+		if err == nil {
+			userLogin = user.Login
+		}
+	}
+
+	link, err := db.CreateDstLink(server.DB, s.Link, userLogin)
 	if err != nil {
 		server.logger.Println("error in CreateNewLink CreateDstLink: ", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -87,6 +96,18 @@ func (server *Server) RedirectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = db.CreateInfos(server.DB, handlers.LinkInfo{
+		LinkId:    link.Id,
+		Browser:   r.Header.Get("User-Agent"),
+		Timestamp: time.Now(),
+	}, link.DstLink)
+
+	if err != nil && err != sql.ErrNoRows {
+		server.logger.Println("error in RedirectHandler CreateInfos: ", err.Error())
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	server.logger.Println("redirect link: ", link.DstLink, " -> ", link.SrcLink)
 	http.Redirect(w, r, link.SrcLink, http.StatusFound)
 }
@@ -99,8 +120,11 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	server.logger.Printf("Get login '%s' password '%s'\n", msg.Login, msg.Password)
+
 	if !handlers.ValidateLoginPassword(msg.Login, msg.Password) {
 		http.Error(w, "incorrect login or password", http.StatusBadRequest)
+		server.logger.Printf("login '%s' password '%s' incorrect\n", msg.Login, msg.Password)
 		return
 	}
 
@@ -110,10 +134,11 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
+		server.logger.Println("error in RegisterHandler db.CreateUser: ", err.Error())
 		return
 	}
 	if !succes {
-		http.Error(w, "this login is bisy", http.StatusBadRequest)
+		http.Error(w, "this login is busy", http.StatusBadRequest)
 		return
 	}
 	jwtToken, err := handlers.CreateJWTToken(msg.Login, server.config.JWTSecret)
@@ -128,6 +153,7 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &cookie)
 	w.WriteHeader(http.StatusOK)
+	server.logger.Printf("Create user login '%s' password '%s'\n", msg.Login, msg.Password)
 }
 
 func (server *Server) AuthHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,6 +205,7 @@ func (server *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func StartServer() *Server {
+	var err error
 	server := Server{
 		config: LoadConfig(),
 	}
@@ -192,11 +219,11 @@ func StartServer() *Server {
 	// TODO check auth
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 
-	os.Mkdir("logs", 0666)
-	_, err := os.Create("logs/server.log")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// os.Mkdir("logs", 0666)
+	// _, err := os.Create("logs/server.log")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 	server.logger = log.New(os.Stdout, "logger: ", log.Lshortfile|log.LstdFlags)
 
 	init := fmt.Sprintf("postgresql://%s:%s@%s/%s?sslmode=disable",

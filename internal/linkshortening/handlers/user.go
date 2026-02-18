@@ -20,6 +20,10 @@ type UserClaims struct {
 }
 
 func ValidateLoginPassword(login, password string) bool {
+	if len(login) > 50 || len(password) > 50 {
+		return false
+	}
+
 	for _, c := range login {
 		if !(unicode.IsLetter(c) || unicode.IsNumber(c)) {
 			return false

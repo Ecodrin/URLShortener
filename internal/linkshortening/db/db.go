@@ -39,6 +39,12 @@ func InsertLinkTx(Tx *sql.Tx, link handlers.Link) error {
 	return err
 }
 
+func InsertInfoTx(Tx *sql.Tx, info handlers.LinkInfo) error {
+	query := "INSERT INTO infos (link_id, browser, timestamp) VALUES ($1, $2, $3)"
+	_, err := Tx.Exec(query, info.LinkId, info.Browser, info.Timestamp)
+	return err
+}
+
 func GetDstLink(DB *sql.DB, srcLink string) (*handlers.Link, error) {
 	var dstLink string
 	for true {
@@ -123,7 +129,7 @@ func CreateUser(DB *sql.DB, user handlers.User) (bool, error) {
 	if err == nil && userH != nil {
 		return false, nil
 	}
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return false, err
 	}
 
@@ -137,6 +143,31 @@ func CreateUser(DB *sql.DB, user handlers.User) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func CreateInfos(DB *sql.DB, info handlers.LinkInfo, dstLink string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return nil
+	}
+	defer tx.Rollback()
+
+	link, err := GetLinkByDstLinkTx(tx, dstLink)
+	if err != nil {
+		return err
+	}
+
+	if link.UserId.Valid == false {
+		return nil
+	}
+
+	err = InsertInfoTx(tx, info)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	return err
 }
 
 func GetLinkById(DB *sql.DB, id int) (*handlers.Link, error) {
@@ -154,6 +185,17 @@ func GetLinkById(DB *sql.DB, id int) (*handlers.Link, error) {
 func GetLinkByDstLink(DB *sql.DB, dst string) (*handlers.Link, error) {
 	query := "SELECT id, src, dst, user_id FROM links WHERE dst = $1"
 	row := DB.QueryRow(query, dst)
+	var link handlers.Link
+	err := row.Scan(&link.Id, &link.SrcLink, &link.DstLink, &link.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &link, err
+}
+
+func GetLinkByDstLinkTx(Tx *sql.Tx, dst string) (*handlers.Link, error) {
+	query := "SELECT id, src, dst, user_id FROM links WHERE dst = $1"
+	row := Tx.QueryRow(query, dst)
 	var link handlers.Link
 	err := row.Scan(&link.Id, &link.SrcLink, &link.DstLink, &link.UserId)
 	if err != nil {
