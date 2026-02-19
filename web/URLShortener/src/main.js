@@ -1,9 +1,9 @@
 function send_link() {
-    fetch('http://server/shorten', {
+        fetch('/shorten', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
-        }, body: JSON.stringify(document.getElementById('long-url').value)
+        }, body: JSON.stringify({'link': document.getElementById('long-url').value})
     })
 
         .then(response => {
