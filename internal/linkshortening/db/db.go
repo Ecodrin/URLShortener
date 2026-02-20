@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
@@ -205,8 +206,20 @@ func GetLinkByDstLinkTx(Tx *sql.Tx, dst string) (*handlers.Link, error) {
 }
 
 func GetLinkBySrcLink(DB *sql.DB, src string) (*handlers.Link, error) {
-	query := "SELECT id, src, dst, user_id FROM users WHERE src = $1"
+	query := "SELECT id, src, dst, user_id FROM links WHERE src = $1"
 	row := DB.QueryRow(query, src)
+	var link handlers.Link
+
+	err := row.Scan(&link.Id, &link.SrcLink, &link.DstLink, &link.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &link, err
+}
+
+func GetLinkBySrcLinkTx(Tx *sql.Tx, src string) (*handlers.Link, error) {
+	query := "SELECT id, src, dst, user_id FROM links WHERE src = $1"
+	row := Tx.QueryRow(query, src)
 	var link handlers.Link
 
 	err := row.Scan(&link.Id, &link.SrcLink, &link.DstLink, &link.UserId)
@@ -278,4 +291,60 @@ func GetUserByLogin(DB *sql.DB, login string) (*handlers.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func DeleteLink(DB *sql.DB, link string, userLogin string) error {
+
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	user, err := GetUserByLoginTx(tx, userLogin)
+	if err != nil {
+		return err
+	}
+	linkInfo, err := GetLinkBySrcLinkTx(tx, link)
+	if err != nil {
+		return err
+	}
+	if (linkInfo.UserId.Valid) && (int(linkInfo.UserId.Int64) != user.Id) {
+		return fmt.Errorf("the user has no rights")
+	}
+	query := "DELETE FROM links WHERE src=$1"
+	_, err = tx.Exec(query, link)
+	if err != nil {
+		return err
+	}
+	err = tx.Commit()
+	return err
+}
+
+func UpdateLink(DB *sql.DB, oldLink string, newLink string, userLogin string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	user, err := GetUserByLoginTx(tx, userLogin)
+	if err != nil {
+		return err
+	}
+	linkInfo, err := GetLinkBySrcLinkTx(tx, oldLink)
+	if err != nil {
+		return err
+	}
+	if (linkInfo.UserId.Valid) && (int(linkInfo.UserId.Int64) != user.Id) {
+		return fmt.Errorf("the user has no rights")
+	}
+
+	query := "UPDATE links SET src = $1 WHERE src=$2"
+	_, err = tx.Exec(query, newLink, oldLink)
+	if err != nil {
+		return err
+	}
+	err = tx.Commit()
+	return err
 }

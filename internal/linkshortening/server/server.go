@@ -120,7 +120,7 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	server.logger.Printf("Get login '%s' password '%s'\n", msg.Login, msg.Password)
+	server.logger.Printf("Get login '%s' password '%s': registr\n", msg.Login, msg.Password)
 
 	if !handlers.ValidateLoginPassword(msg.Login, msg.Password) {
 		http.Error(w, "incorrect login or password", http.StatusBadRequest)
@@ -138,6 +138,7 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !succes {
+		server.logger.Printf("login '%s' is busy", msg.Login)
 		http.Error(w, "this login is busy", http.StatusBadRequest)
 		return
 	}
@@ -204,6 +205,61 @@ func (server *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (server *Server) DeleteLinkHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
+		return
+	}
+	user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var link handlers.LinkRequest
+	err = json.NewDecoder(r.Body).Decode(&link)
+	if err != nil {
+		http.Error(w, "bad json", http.StatusBadRequest)
+		return
+	}
+
+	err = db.DeleteLink(server.DB, link.Link, user.Login)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (server *Server) UpdateLinkHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
+		return
+	}
+	user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var link handlers.UpdateLinkHandler
+	err = json.NewDecoder(r.Body).Decode(&link)
+	if err != nil {
+		http.Error(w, "bad json", http.StatusBadRequest)
+		return
+	}
+
+	err = db.UpdateLink(server.DB, link.OldLink, link.NewLink, user.Login)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
+}
+
 func StartServer() *Server {
 	var err error
 	server := Server{
@@ -215,6 +271,8 @@ func StartServer() *Server {
 	server.mux.HandleFunc("POST /auth", server.AuthHandler)
 	server.mux.HandleFunc("POST /registr", server.RegisterHandler)
 	server.mux.HandleFunc("POST /logout", server.LogoutHandler)
+	server.mux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
+	server.mux.HandleFunc("POST /updatelink", server.UpdateLinkHandler)
 
 	// TODO check auth
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
