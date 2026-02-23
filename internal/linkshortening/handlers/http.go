@@ -9,7 +9,10 @@ type RegistAuthRequest struct {
 	Password string `json:"password"`
 }
 
-type UpdateLinkHandler struct {
+type UpdateSrcLinkHandler struct {
 	OldLink string `json:"old_link"`
 	NewLink string `json:"new_link"`
+	DstLink string `json:"dst_link"`
 }
+
+var UserContextKey string = "user"

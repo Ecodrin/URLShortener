@@ -305,14 +305,15 @@ func DeleteLink(DB *sql.DB, link string, userLogin string) error {
 	if err != nil {
 		return err
 	}
-	linkInfo, err := GetLinkBySrcLinkTx(tx, link)
+	linkInfo, err := GetLinkByDstLinkTx(tx, link)
 	if err != nil {
 		return err
 	}
 	if (linkInfo.UserId.Valid) && (int(linkInfo.UserId.Int64) != user.Id) {
 		return fmt.Errorf("the user has no rights")
 	}
-	query := "DELETE FROM links WHERE src=$1"
+
+	query := "DELETE FROM links WHERE dst=$1"
 	_, err = tx.Exec(query, link)
 	if err != nil {
 		return err
@@ -321,7 +322,7 @@ func DeleteLink(DB *sql.DB, link string, userLogin string) error {
 	return err
 }
 
-func UpdateLink(DB *sql.DB, oldLink string, newLink string, userLogin string) error {
+func UpdateLink(DB *sql.DB, oldLink string, newLink string, dstLink string, userLogin string) error {
 	tx, err := DB.Begin()
 	if err != nil {
 		return err
@@ -332,7 +333,7 @@ func UpdateLink(DB *sql.DB, oldLink string, newLink string, userLogin string) er
 	if err != nil {
 		return err
 	}
-	linkInfo, err := GetLinkBySrcLinkTx(tx, oldLink)
+	linkInfo, err := GetLinkByDstLinkTx(tx, dstLink)
 	if err != nil {
 		return err
 	}
@@ -340,8 +341,8 @@ func UpdateLink(DB *sql.DB, oldLink string, newLink string, userLogin string) er
 		return fmt.Errorf("the user has no rights")
 	}
 
-	query := "UPDATE links SET src = $1 WHERE src=$2"
-	_, err = tx.Exec(query, newLink, oldLink)
+	query := "UPDATE links SET src = $1 WHERE dst=$2"
+	_, err = tx.Exec(query, newLink, dstLink)
 	if err != nil {
 		return err
 	}

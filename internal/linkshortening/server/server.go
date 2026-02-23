@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"linkshorteningservice/internal/linkshortening/db"
@@ -89,7 +90,7 @@ func (server *Server) RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		server.logger.Println("error in RedirectFunction GetLinkByDstLink: ", err.Error())
 		if err == sql.ErrNoRows {
-			fmt.Fprintln(w, "not exist link")
+			http.Error(w, "not exist link", http.StatusNotFound)
 		} else {
 			http.Error(w, "bad request", http.StatusBadRequest)
 		}
@@ -189,6 +190,7 @@ func (server *Server) AuthHandler(w http.ResponseWriter, r *http.Request) {
 		Value:   jwtToken,
 		Expires: time.Now().Add(24 * time.Hour),
 	}
+	server.logger.Println("user", msg.Login, "auth successful")
 	http.SetCookie(w, &cookie)
 	w.WriteHeader(http.StatusOK)
 }
@@ -206,58 +208,86 @@ func (server *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) DeleteLinkHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
-		return
-	}
-	user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	user, ok := r.Context().Value(handlers.UserContextKey).(*handlers.User)
+	if !ok {
+		http.Error(w, "no auth", http.StatusNonAuthoritativeInfo)
 		return
 	}
 
 	var link handlers.LinkRequest
-	err = json.NewDecoder(r.Body).Decode(&link)
+	err := json.NewDecoder(r.Body).Decode(&link)
 	if err != nil {
 		http.Error(w, "bad json", http.StatusBadRequest)
 		return
 	}
 
-	err = db.DeleteLink(server.DB, link.Link, user.Login)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if strings.LastIndex(link.Link, "/") == -1 {
+		http.Error(w, "no correct dst link", http.StatusBadRequest)
 		return
 	}
+
+	linkPostFix := link.Link[strings.LastIndex(link.Link, "/")+1:]
+	err = db.DeleteLink(server.DB, linkPostFix, user.Login)
+	if err != nil {
+		server.logger.Println("err in deleteLink: ", err.Error(), "link: ", link.Link)
+		http.Error(w, "no correct link", http.StatusBadRequest)
+		return
+	}
+	server.logger.Println("link", link.Link, "delete by user:", user.Login)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (server *Server) UpdateLinkHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
-		return
-	}
-	user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+func (server *Server) UpdateSrcLinkHandler(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(handlers.UserContextKey).(*handlers.User)
+	if !ok {
+		http.Error(w, "no auth", http.StatusNonAuthoritativeInfo)
 		return
 	}
 
-	var link handlers.UpdateLinkHandler
-	err = json.NewDecoder(r.Body).Decode(&link)
+	var link handlers.UpdateSrcLinkHandler
+	err := json.NewDecoder(r.Body).Decode(&link)
 	if err != nil {
 		http.Error(w, "bad json", http.StatusBadRequest)
 		return
 	}
 
-	err = db.UpdateLink(server.DB, link.OldLink, link.NewLink, user.Login)
+	if strings.LastIndex(link.DstLink, "/") == -1 {
+		http.Error(w, "no correct dst link", http.StatusBadRequest)
+		return
+	}
+
+	linkPostFix := link.DstLink[strings.LastIndex(link.DstLink, "/")+1:]
+	err = db.UpdateLink(server.DB, link.OldLink, link.NewLink, linkPostFix, user.Login)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	server.logger.Println("link update", link.OldLink, " -> ", link.NewLink, "by user:", user.Login)
 	w.WriteHeader(http.StatusOK)
+}
 
+func (server *Server) GetLinksInfo(w http.ResponseWriter, r *http.Request) {
+	// TODO
+}
+
+func (server *Server) CheckAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("session_id")
+		if err != nil {
+			http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
+			return
+		}
+		user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
+		if err != nil {
+			cookie.Expires = time.Now().AddDate(0, 0, -1)
+			http.SetCookie(w, cookie)
+			http.Error(w, err.Error(), http.StatusNonAuthoritativeInfo)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "user", user)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func StartServer() *Server {
@@ -271,10 +301,17 @@ func StartServer() *Server {
 	server.mux.HandleFunc("POST /auth", server.AuthHandler)
 	server.mux.HandleFunc("POST /registr", server.RegisterHandler)
 	server.mux.HandleFunc("POST /logout", server.LogoutHandler)
-	server.mux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
-	server.mux.HandleFunc("POST /updatelink", server.UpdateLinkHandler)
 
-	// TODO check auth
+	AuthMux := http.NewServeMux()
+	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
+	AuthMux.HandleFunc("POST /updatesrclink", server.UpdateSrcLinkHandler)
+	AuthMux.HandleFunc("GET /getlinksinfo", server.GetLinksInfo)
+
+	AuthHandler := server.CheckAuth(AuthMux)
+	server.mux.Handle("POST /deletelink", AuthHandler)
+	server.mux.Handle("POST /updatesrclink", AuthHandler)
+	server.mux.Handle("GET /getlinksinfo", AuthHandler)
+
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 
 	// os.Mkdir("logs", 0666)
