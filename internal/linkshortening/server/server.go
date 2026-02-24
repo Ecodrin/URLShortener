@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"linkshorteningservice/internal/linkshortening/constants"
 	"linkshorteningservice/internal/linkshortening/db"
 	"linkshorteningservice/internal/linkshortening/handlers"
 	"log"
@@ -15,6 +16,8 @@ import (
 	"database/sql"
 
 	_ "github.com/lib/pq"
+
+	"github.com/skip2/go-qrcode"
 )
 
 type Server struct {
@@ -73,6 +76,7 @@ func (server *Server) CreateNewLinkHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	s.Link = GetNewPath(r, link.DstLink)
 	err = json.NewEncoder(w).Encode(s)
 	if err != nil {
@@ -281,6 +285,8 @@ func (server *Server) GetLinksInfo(w http.ResponseWriter, r *http.Request) {
 	for i := range links {
 		links[i].DstLink = GetNewPath(r, links[i].DstLink)
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(links)
 	if err != nil {
 		server.logger.Println("error in json: ", err)
@@ -311,13 +317,56 @@ func (server *Server) GetLinkInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad link", http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(infos)
 	if err != nil {
-		server.logger.Println("error in json:", err)
+		server.logger.Println("error in GetLinkInfo json:", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (server *Server) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
+	var link handlers.LinkRequest
+	err := json.NewDecoder(r.Body).Decode(&link)
+	if err != nil {
+		server.logger.Println("error in GenerateQRCode json:", err)
+		http.Error(w, "incorrect json body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.LastIndex(link.Link, "/") == -1 {
+		http.Error(w, "incorrect link", http.StatusBadRequest)
+		return
+	}
+	linkWithoutPrefix := link.Link[strings.LastIndex(link.Link, "/")+1:]
+	ok, err := db.IsExistDstLink(server.DB, linkWithoutPrefix)
+	if err != nil {
+		server.logger.Println("error in GenerateQRCode IsExistDstLink:", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		server.logger.Println("not exist dst link: ", link.Link)
+		http.Error(w, "not exist link", http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	qr, err := qrcode.New(link.Link, qrcode.High)
+	if err != nil {
+		server.logger.Println("error in GenerateQRCode qrcode.New: ", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	err = qr.Write(constants.QRCodeSize, w)
+	if err != nil {
+		server.logger.Println("error in GenerateQRCode qr.Write: ", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 }
 
 func (server *Server) CheckAuth(next http.Handler) http.Handler {
@@ -351,6 +400,7 @@ func StartServer() *Server {
 	server.mux.HandleFunc("POST /auth", server.AuthHandler)
 	server.mux.HandleFunc("POST /registr", server.RegisterHandler)
 	server.mux.HandleFunc("POST /logout", server.LogoutHandler)
+	server.mux.HandleFunc("GET /generateqrcode", server.GenerateQRCode)
 
 	AuthMux := http.NewServeMux()
 	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
