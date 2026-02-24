@@ -267,13 +267,63 @@ func (server *Server) UpdateSrcLinkHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *Server) GetLinksInfo(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	user, ok := r.Context().Value(handlers.UserContextKey).(*handlers.User)
+	if !ok {
+		http.Error(w, "no auth", http.StatusNonAuthoritativeInfo)
+		return
+	}
+	links, err := db.GetLinksByUser(server.DB, *user)
+	if err != nil {
+		server.logger.Println("error in GetLinksByUser: ", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	for i := range links {
+		links[i].DstLink = GetNewPath(r, links[i].DstLink)
+	}
+	err = json.NewEncoder(w).Encode(links)
+	if err != nil {
+		server.logger.Println("error in json: ", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (server *Server) GetLinkInfo(w http.ResponseWriter, r *http.Request) {
+	_, ok := r.Context().Value(handlers.UserContextKey).(*handlers.User)
+	if !ok {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	var link handlers.LinkRequest
+	err := json.NewDecoder(r.Body).Decode(&link)
+	if err != nil {
+		http.Error(w, "incorrect json request", http.StatusBadRequest)
+		return
+	}
+
+	linkPostFix := link.Link[strings.LastIndex(link.Link, "/")+1:]
+	link.Link = linkPostFix
+	infos, err := db.GetLinkInfo(server.DB, link)
+	if err != nil {
+		server.logger.Println("error in GetLinkInfo:", err)
+		http.Error(w, "bad link", http.StatusBadRequest)
+		return
+	}
+	err = json.NewEncoder(w).Encode(infos)
+	if err != nil {
+		server.logger.Println("error in json:", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (server *Server) CheckAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_id")
-		if err != nil {
+		if err != nil || (!cookie.Expires.IsZero() && time.Now().After(cookie.Expires)) {
 			http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
 			return
 		}
@@ -305,12 +355,14 @@ func StartServer() *Server {
 	AuthMux := http.NewServeMux()
 	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
 	AuthMux.HandleFunc("POST /updatesrclink", server.UpdateSrcLinkHandler)
-	AuthMux.HandleFunc("GET /getlinksinfo", server.GetLinksInfo)
+	AuthMux.HandleFunc("GET /linksinfo", server.GetLinksInfo)
+	AuthMux.HandleFunc("GET /linkinfo", server.GetLinkInfo)
 
 	AuthHandler := server.CheckAuth(AuthMux)
 	server.mux.Handle("POST /deletelink", AuthHandler)
 	server.mux.Handle("POST /updatesrclink", AuthHandler)
-	server.mux.Handle("GET /getlinksinfo", AuthHandler)
+	server.mux.Handle("GET /linksinfo", AuthHandler)
+	server.mux.Handle("GET /linkinfo", AuthHandler)
 
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 

@@ -349,3 +349,58 @@ func UpdateLink(DB *sql.DB, oldLink string, newLink string, dstLink string, user
 	err = tx.Commit()
 	return err
 }
+
+func GetLinksByUser(DB *sql.DB, user handlers.User) ([]handlers.OutputLink, error) {
+	tx, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	var links []handlers.OutputLink
+	userDb, err := GetUserByLoginTx(tx, user.Login)
+	if err != nil {
+		return nil, err
+	}
+
+	query := "SELECT id, src, dst FROM links WHERE user_id=$1 ORDER BY id"
+
+	rows, err := DB.Query(query, userDb.Id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var link handlers.OutputLink
+		err = rows.Scan(&link.Id, &link.SrcLink, &link.DstLink)
+		if err != nil {
+			return nil, err
+		}
+		links = append(links, link)
+	}
+	err = tx.Commit()
+	return links, err
+}
+
+func GetLinkInfo(DB *sql.DB, link handlers.LinkRequest) ([]handlers.LinkInfo, error) {
+	query := `
+		SELECT infos.link_id, infos.browser, infos.timestamp
+		FROM infos
+		JOIN links ON infos.link_id = links.id
+		WHERE links.dst = $1
+	`
+	rows, err := DB.Query(query, link.Link)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var linksInfos []handlers.LinkInfo
+	for rows.Next() {
+		var info handlers.LinkInfo
+		err = rows.Scan(&info.LinkId, &info.Browser, &info.Timestamp)
+		if err != nil {
+			return nil, err
+		}
+		linksInfos = append(linksInfos, info)
+	}
+	return linksInfos, nil
+}

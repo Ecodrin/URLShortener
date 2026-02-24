@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,7 +16,8 @@ type User struct {
 }
 
 type UserClaims struct {
-	Login string `json:"login"`
+	Login string    `json:"login"`
+	Exp   time.Time `json:"exp"`
 	jwt.RegisteredClaims
 }
 
@@ -41,6 +43,7 @@ func ValidateLoginPassword(login, password string) bool {
 func CreateJWTToken(login string, secret string) (string, error) {
 	claims := UserClaims{
 		Login: login,
+		Exp:   time.Now().Add(24 * time.Hour),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(secret))
@@ -63,7 +66,7 @@ func GetUserFromJWTToken(token string, secret string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !outputToken.Valid {
+	if !outputToken.Valid || time.Now().After(claims.Exp) {
 		return nil, fmt.Errorf("incorrect token")
 	}
 
