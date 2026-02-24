@@ -24,8 +24,8 @@ func CreateUsersTable(DB *sql.DB) error {
 	query := `
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
-			login TEXT,
-			password TEXT
+			login VARCHAR(50),
+			password VARCHAR(50)
 		)
 	`
 
@@ -41,9 +41,10 @@ func CreateLinkTable(DB *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS links (
 			id SERIAL PRIMARY KEY,
 			src TEXT,
-			dst TEXT,
+			dst VARCHAR(50),
 			user_id INTEGER NULL,
-			FOREIGN KEY (user_id) REFERENCES users(id)
+			FOREIGN KEY (user_id) REFERENCES users(id) 
+				ON DELETE SET NULL
 		)
 	`
 

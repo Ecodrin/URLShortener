@@ -11,6 +11,8 @@ type Config struct {
 	dbUser     string
 	dbPassword string
 	dbName     string
+
+	JWTSecret string
 }
 
 func LoadConfig() *Config {
@@ -23,5 +25,7 @@ func LoadConfig() *Config {
 		dbUser:     os.Getenv("DB_USER"),
 		dbPassword: os.Getenv("DB_PASSWORD"),
 		dbName:     os.Getenv("DB_NAME"),
+
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}
 }
