@@ -12,6 +12,19 @@ function send_link() {
             }
             return response.json();
         })
-        .then(data => console.log('Успех:', data))
-        .catch(error => console.error('Ошибка:', error));
+        .then(data => {
+            let short_url_field = document.getElementById('short-url');
+            short_url_field.value = data['link'];
+        })
+        .catch(error => console.error('Failed to send link: ', error));
+}
+
+async function copyPlainText() {
+    const content = document.getElementById('short-url').value;
+    try {
+        console.log(content);
+        await navigator.clipboard.writeText(content);
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+    }
 }
