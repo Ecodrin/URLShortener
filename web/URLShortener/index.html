@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="src/style.css" />
+  <title>Сокращатель ссылок + QR-код</title>
+</head>
+<body>
+<button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
+
+<div class="wrapper">
+  <h1>Сократи и создай QR</h1>
+
+  <div class="main-content">
+    <div class="left-column card">
+      <div class="input-group">
+        <input type="text" id="long-url" class="url-input" placeholder="Вставьте длинную ссылку..." />
+        <button id="generate-btn" class="btn" onclick="send_link()">Создать короткую ссылку</button>
+      </div>
+
+      <div class="short-url-group">
+        <input type="text" id="short-url" class="short-url-field" readonly placeholder="Короткая ссылка появится здесь" />
+        <button id="copy-btn" class="copy-btn" onclick="copyPlainText()">Копировать</button>
+      </div>
+    </div>
+
+    <div class="right-column card">
+      <div class="qr-container">
+        <img id="qr-image" src=""/>
+      </div>
+      <button id="download-qr-btn" class="btn download-btn">Скачать QR-код</button>
+    </div>
+  </div>
+</div>
+
+<script src="src/main.js"></script>
+</body>
+</html>
