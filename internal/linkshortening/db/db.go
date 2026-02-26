@@ -351,24 +351,21 @@ func UpdateLink(DB *sql.DB, oldLink string, newLink string, dstLink string, user
 }
 
 func GetLinksByUser(DB *sql.DB, user handlers.User) ([]handlers.OutputLink, error) {
-	tx, err := DB.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-	var links []handlers.OutputLink
-	userDb, err := GetUserByLoginTx(tx, user.Login)
-	if err != nil {
-		return nil, err
-	}
+	query := `
+		SELECT links.id, links.src, links.dst 
+		FROM links 
+		JOIN users ON links.user_id = users.id	
+		WHERE users.login = $1
+		ORDER BY links.id
+	`
 
-	query := "SELECT id, src, dst FROM links WHERE user_id=$1 ORDER BY id"
-
-	rows, err := DB.Query(query, userDb.Id)
+	rows, err := DB.Query(query, user.Login)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
+	var links []handlers.OutputLink
 	for rows.Next() {
 		var link handlers.OutputLink
 		err = rows.Scan(&link.Id, &link.SrcLink, &link.DstLink)
@@ -377,7 +374,7 @@ func GetLinksByUser(DB *sql.DB, user handlers.User) ([]handlers.OutputLink, erro
 		}
 		links = append(links, link)
 	}
-	err = tx.Commit()
+
 	return links, err
 }
 
