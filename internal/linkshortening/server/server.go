@@ -400,7 +400,7 @@ func StartServer() *Server {
 	server.mux.HandleFunc("POST /auth", server.AuthHandler)
 	server.mux.HandleFunc("POST /registr", server.RegisterHandler)
 	server.mux.HandleFunc("POST /logout", server.LogoutHandler)
-	server.mux.HandleFunc("GET /generateqrcode", server.GenerateQRCode)
+	server.mux.HandleFunc("POST /generateqrcode", server.GenerateQRCode)
 
 	AuthMux := http.NewServeMux()
 	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)

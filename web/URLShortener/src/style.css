@@ -234,6 +234,11 @@ h1 {
   color: #111827;
 }
 
+img[src=""],
+img:not([src]) {
+  opacity: 0;
+}
+
 @media (max-width: 768px) {
   .main-content {
     flex-direction: column;
