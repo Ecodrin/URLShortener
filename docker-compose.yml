@@ -17,6 +17,12 @@ services:
     depends_on:
       - db
 
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
   db:
     image: postgres:latest
     shm_size: 128mb
@@ -31,6 +37,12 @@ services:
     volumes:
       - ./pgdata:/var/lib/postgresql/18/data
 
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
   nginx:
     image: nginx
     ports:
@@ -42,6 +54,12 @@ services:
       - ./web/URLShortener:/usr/share/nginx/html:ro
     depends_on:
       - server
+  
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 
 networks:
