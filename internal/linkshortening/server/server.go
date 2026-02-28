@@ -417,7 +417,7 @@ func StartServer() *Server {
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 
 	// os.Mkdir("logs", 0666)
-	// _, err := os.Create("logs/server.log")
+	// f, err := os.Create("logs/server.log")
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
