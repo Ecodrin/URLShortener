@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
@@ -7,33 +7,114 @@
   <title>Сокращатель ссылок + QR-код</title>
 </head>
 <body>
-<button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
+<div id="app">
+  <div class="header-controls">
+    <span id="user-greeting" class="user-greeting hidden"></span>
+    <button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
+  </div>
 
-<div class="wrapper">
-  <h1>Сократи и создай QR</h1>
-
-  <div class="main-content">
-    <div class="left-column card">
-      <div class="input-group">
-        <input type="text" id="long-url" class="url-input" placeholder="Вставьте длинную ссылку..." />
-        <button id="generate-btn" class="btn" onclick="send_link()">Создать короткую ссылку</button>
-      </div>
-
-      <div class="short-url-group">
-        <input type="text" id="short-url" class="short-url-field" readonly placeholder="Короткая ссылка появится здесь" />
-        <button id="copy-btn" class="copy-btn" onclick="copyPlainText()">Копировать</button>
+  <div id="main-view" class="view active">
+    <div class="wrapper">
+      <h1>Сократи и создай QR</h1>
+      <div class="main-content">
+        <div class="left-column card">
+          <div class="input-group">
+            <input type="text" id="long-url" class="url-input" placeholder="Вставьте длинную ссылку..." />
+            <button id="generate-btn" class="btn">Создать короткую ссылку</button>
+          </div>
+          <div class="short-url-group">
+            <input type="text" id="short-url" class="short-url-field" readonly placeholder="Короткая ссылка появится здесь" />
+            <button id="copy-btn" class="copy-btn">Копировать</button>
+          </div>
+        </div>
+        <div class="right-column card">
+          <div class="qr-container">
+            <img id="qr-image" src="" alt="QR-код"/>
+          </div>
+          <button id="download-qr-btn" class="btn download-btn">Скачать QR-код</button>
+        </div>
       </div>
     </div>
+  </div>
 
-    <div class="right-column card">
-      <div class="qr-container">
-        <img id="qr-image" src=""/>
+  <div id="cabinet-view" class="view">
+    <div class="wrapper cabinet-wrapper">
+      <h2>Личный кабинет</h2>
+      <div id="auth-forms" class="cabinet-section">
+        <div class="card form-card">
+          <h3>Вход</h3>
+          <input type="email" id="login-email" class="url-input" placeholder="Email" />
+          <input type="password" id="login-password" class="url-input" placeholder="Пароль" />
+          <div id="login-error" class="error-message"></div>
+          <button id="login-btn" class="btn">Войти</button>
+        </div>
+        <div class="card form-card">
+          <h3>Регистрация</h3>
+          <input type="email" id="register-email" class="url-input" placeholder="Email" />
+          <input type="password" id="register-password" class="url-input" placeholder="Пароль" />
+          <div id="register-error" class="error-message"></div>
+          <button id="register-btn" class="btn">Зарегистрироваться</button>
+        </div>
       </div>
-      <button id="download-qr-btn" class="btn download-btn">Скачать QR-код</button>
+
+      <div id="links-list" class="cabinet-section hidden">
+        <div class="card links-card">
+          <div class="links-header">
+            <h3>Мои ссылки</h3>
+            <button id="logout-btn" class="copy-btn">Выйти</button>
+          </div>
+          <div id="cabinet-message" class="error-message" style="margin-bottom: 1rem;"></div>
+          <div id="links-container" class="links-container">
+            <!-- динамически -->
+          </div>
+        </div>
+            <div class="link-item">
+              <div class="link-info">
+                <a href="#" class="short-link">https://shr.ink/abc123</a>
+                <div class="long-link">https://verylongdomain.com/with/some/path</div>
+              </div>
+              <div class="link-actions">
+                <button class="stats-btn">Статистика</button>
+                <button class="edit-btn">Редактировать</button>
+                <button class="delete-btn">Удалить</button>
+              </div>
+            </div>
+            <div class="link-item">
+              <div class="link-info">
+                <a href="#" class="short-link">https://shr.ink/xyz789</a>
+                <div class="long-link">https://anotherexample.com/page</div>
+              </div>
+              <div class="link-actions">
+                <button class="stats-btn">Статистика</button>
+                <button class="edit-btn">Редактировать</button>
+                <button class="delete-btn">Удалить</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
+<div id="stats-modal" class="modal hidden">
+  <div class="modal-content card">
+    <span class="close-btn">&times;</span>
+    <h3>Статистика переходов</h3>
+    <div id="stats-table-container">
+      <table>
+        <thead>
+        <tr><th>timestamp</th><th>browser</th><th>ip</th></tr>
+        </thead>
+        <tbody>
+        <tr><td>01.03.2026, 14:32:15</td><td>Chrome</td><td>192.168.1.45</td></tr>
+        <tr><td>01.03.2026, 10:12:03</td><td>Firefox</td><td>10.0.0.5</td></tr>
+        <tr><td>28.02.2026, 22:45:00</td><td>Safari</td><td>172.16.20.1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 <script src="src/main.js"></script>
 </body>
 </html>
