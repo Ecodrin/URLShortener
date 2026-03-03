@@ -9,9 +9,9 @@
 <body>
 <div id="app">
   <div class="header-controls">
-    <span id="user-greeting" class="user-greeting hidden"></span>
     <button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
   </div>
+
 
   <div id="main-view" class="view active">
     <div class="wrapper">
@@ -37,23 +37,41 @@
     </div>
   </div>
 
+
   <div id="cabinet-view" class="view">
     <div class="wrapper cabinet-wrapper">
       <h2>Личный кабинет</h2>
+
+
       <div id="auth-forms" class="cabinet-section">
         <div class="card form-card">
-          <h3>Вход</h3>
-          <input type="email" id="login-email" class="url-input" placeholder="Email" />
-          <input type="password" id="login-password" class="url-input" placeholder="Пароль" />
-          <div id="login-error" class="error-message"></div>
-          <button id="login-btn" class="btn">Войти</button>
-        </div>
-        <div class="card form-card">
-          <h3>Регистрация</h3>
-          <input type="email" id="register-email" class="url-input" placeholder="Email" />
-          <input type="password" id="register-password" class="url-input" placeholder="Пароль" />
-          <div id="register-error" class="error-message"></div>
-          <button id="register-btn" class="btn">Зарегистрироваться</button>
+          <h3>Авторизация / Регистрация</h3>
+
+          <div class="input-wrapper">
+            <input type="text" id="auth-login" class="url-input" placeholder="Логин (буквы и цифры)" />
+            <div class="hint-tooltip">Допустимы только буквы и цифры, до 50 символов</div>
+          </div>
+
+          <div class="input-wrapper password-wrapper">
+            <input type="password" id="auth-password" class="url-input" placeholder="Пароль" />
+            <button type="button" class="password-toggle" aria-label="Показать пароль">
+              <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20">
+                <path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5zM12 17c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z"/>
+                <circle cx="12" cy="12" r="2.5"/>
+              </svg>
+              <svg class="eye-icon eye-slash" viewBox="0 0 18 18" width="20" height="20" style="display:none;">
+                <use xlink:href="#IconEyeCrossedSmall__a" fill-rule="evenodd"></use>
+              </svg>
+            </button>
+            <div class="hint-tooltip">Допустимы буквы, цифры и символы _ - !, до 50 символов</div>
+          </div>
+
+          <div id="auth-error" class="error-message"></div>
+
+          <div class="button-group">
+            <button id="login-btn" class="btn">Войти</button>
+            <button id="register-btn" class="btn">Зарегистрироваться</button>
+          </div>
         </div>
       </div>
 
@@ -64,33 +82,7 @@
             <button id="logout-btn" class="copy-btn">Выйти</button>
           </div>
           <div id="cabinet-message" class="error-message" style="margin-bottom: 1rem;"></div>
-          <div id="links-container" class="links-container">
-            <!-- динамически -->
-          </div>
-        </div>
-            <div class="link-item">
-              <div class="link-info">
-                <a href="#" class="short-link">https://shr.ink/abc123</a>
-                <div class="long-link">https://verylongdomain.com/with/some/path</div>
-              </div>
-              <div class="link-actions">
-                <button class="stats-btn">Статистика</button>
-                <button class="edit-btn">Редактировать</button>
-                <button class="delete-btn">Удалить</button>
-              </div>
-            </div>
-            <div class="link-item">
-              <div class="link-info">
-                <a href="#" class="short-link">https://shr.ink/xyz789</a>
-                <div class="long-link">https://anotherexample.com/page</div>
-              </div>
-              <div class="link-actions">
-                <button class="stats-btn">Статистика</button>
-                <button class="edit-btn">Редактировать</button>
-                <button class="delete-btn">Удалить</button>
-              </div>
-            </div>
-          </div>
+          <div id="links-container" class="links-container"></div>
         </div>
       </div>
     </div>
@@ -101,20 +93,17 @@
   <div class="modal-content card">
     <span class="close-btn">&times;</span>
     <h3>Статистика переходов</h3>
-    <div id="stats-table-container">
-      <table>
-        <thead>
-        <tr><th>timestamp</th><th>browser</th><th>ip</th></tr>
-        </thead>
-        <tbody>
-        <tr><td>01.03.2026, 14:32:15</td><td>Chrome</td><td>192.168.1.45</td></tr>
-        <tr><td>01.03.2026, 10:12:03</td><td>Firefox</td><td>10.0.0.5</td></tr>
-        <tr><td>28.02.2026, 22:45:00</td><td>Safari</td><td>172.16.20.1</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div id="stats-table-container"></div>
   </div>
 </div>
+
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <path id="IconEyeCrossedSmall__a" d="M7.214 8.628L4.746 6.16a7.036 7.036 0 00-2.69 3.34c1.058 2.768 3.81 4.608 6.943 4.608a7.757 7.757 0 003.069-.626L9.82 11.236c-.25.106-.529.166-.821.166-1.108 0-2.01-.853-2.01-1.902 0-.314.08-.61.224-.872zm1.799-1.03c1.102.007 1.997.857 1.997 1.902l-.003.093 2.822 2.822A6.989 6.989 0 0015.944 9.5C14.886 6.732 12.134 4.892 9 4.892a7.79 7.79 0 00-2.337.356l2.35 2.35zM3.359 4.773L1.293 2.707C.35 1.764 1.764.35 2.707 1.293l2.47 2.47A9.862 9.862 0 019 3c4.117 0 7.716 2.498 8.954 6.215a.895.895 0 010 .57 8.855 8.855 0 01-2.747 4.007l1.501 1.5c.943.944-.471 2.358-1.414 1.415l-1.788-1.788A9.814 9.814 0 018.999 16C4.883 16 1.284 13.502.046 9.785a.895.895 0 010-.57A8.899 8.899 0 013.36 4.773z"></path>
+  </defs>
+</svg>
+
 <script src="src/main.js"></script>
 </body>
 </html>
