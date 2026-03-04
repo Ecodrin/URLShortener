@@ -1,0 +1,23 @@
+name: CI/CD PipeLine
+
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Start Servie
+      run: docker compose up -d
+    - name: Wait DB
+      run: sleep 15
+    
+    - name: Stop service
+      run: docker compose down
