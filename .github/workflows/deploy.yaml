@@ -1,0 +1,72 @@
+name: CI/CD PipeLine
+
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Start Servie
+      run: docker compose up -d
+    - name: Wait DB
+      run: sleep 15
+    
+    - name: Stop service
+      run: docker compose down
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+    - name: Create tar
+      run: |
+        ARCHIVE_NAME=${{ secrets.PROJECT_FOLDER }}.tar.gz
+        tar -czvf "/tmp/$ARCHIVE_NAME" \
+            --exclude='.git' \
+            --exclude='.github' \
+            .
+      
+    - name: deploy
+      run: |
+        ARCHIVE_NAME=${{ secrets.PROJECT_FOLDER }}.tar.gz
+
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+        chmod 600 key.pem
+        scp -i key.pem -o StrictHostKeyChecking=no /tmp/$ARCHIVE_NAME ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+
+        ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          mkdir -p ${{ secrets.PROJECT_FOLDER }}
+          
+          tar -xzvf /tmp/$ARCHIVE_NAME -C ${{ secrets.PROJECT_FOLDER }}
+
+          cd ${{ secrets.PROJECT_FOLDER }}
+          
+          echo 'HOST=localhost' > .env
+          echo 'PORT=8080' >> .env
+          echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
+          echo 'DB_NAME=postgres' >> .env
+          echo 'DB_USER=postgres' >> .env
+          echo 'DB_HOST=db' >> .env
+          echo 'DB_PORT=5432' >> .env
+          echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> .env
+          
+          chmod 600 .env
+          ls -la .env
+
+          docker compose pull
+          docker compose up -d
+          docker compose ps
+
+          rm -rf /tmp/${{ secrets.PROJECT_FOLDER }}.tar.gz
+        "
+        rm -rf "/tmp/$ARCHIVE_NAME"
+        rm key.pem
