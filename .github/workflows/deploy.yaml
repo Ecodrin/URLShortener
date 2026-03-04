@@ -16,7 +16,7 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
         chmod 600 key.pem
 
-        tar -сzvf ${{ secrets.PROJECT_FOLDER }}.zip .
+        tar -czvf ${{ secrets.PROJECT_FOLDER }}.zip .
         scp -i key.pem ${{ secrets.PROJECT_FOLDER }}.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/
         ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
           rm -rf ${{ secrets.PROJECT_FOLDER }}
