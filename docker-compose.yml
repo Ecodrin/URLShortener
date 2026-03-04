@@ -10,6 +10,7 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - JWT_SECRET=${JWT_SECRET}
+      - HASH_COST=${HASH_COST}
     volumes:
       - .:/linkshorteningservice
     networks:

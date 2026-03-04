@@ -1,6 +1,10 @@
 package server
 
-import "os"
+import (
+	"log"
+	"os"
+	"strconv"
+)
 
 type Config struct {
 	host string
@@ -13,9 +17,15 @@ type Config struct {
 	dbName     string
 
 	JWTSecret string
+	hashCost  int
 }
 
 func LoadConfig() *Config {
+	hashCost, err := strconv.Atoi(os.Getenv("HASH_COST"))
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
 	return &Config{
 		host: os.Getenv("HOST"),
 		port: os.Getenv("PORT"),
@@ -27,5 +37,6 @@ func LoadConfig() *Config {
 		dbName:     os.Getenv("DB_NAME"),
 
 		JWTSecret: os.Getenv("JWT_SECRET"),
+		hashCost:  hashCost,
 	}
 }
