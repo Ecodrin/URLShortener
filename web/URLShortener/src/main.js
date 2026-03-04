@@ -5,11 +5,25 @@ const mainView = document.getElementById('main-view');
 const cabinetView = document.getElementById('cabinet-view');
 const authBtn = document.getElementById('auth-btn');
 
-
 const authLogin = document.getElementById('auth-login');
 const authPassword = document.getElementById('auth-password');
 const authError = document.getElementById('auth-error');
 const cabinetMessage = document.getElementById('cabinet-message');
+
+const modal = document.getElementById('stats-modal');
+const modalClose = document.querySelector('.close-btn');
+const statsContainer = document.getElementById('stats-table-container');
+
+function clearErrors() {
+    if (authError) authError.textContent = '';
+    if (cabinetMessage) cabinetMessage.textContent = '';
+}
+
+function updateAuthButton() {
+    if (authBtn) {
+        authBtn.textContent = currentUser ? currentUser : 'Вход / Регистрация';
+    }
+}
 
 function validateLoginPassword(login, password) {
     if (login.length > 50) {
@@ -30,17 +44,6 @@ function validateLoginPassword(login, password) {
     }
 
     return { isValid: true, message: '' };
-}
-
-function clearErrors() {
-    if (authError) authError.textContent = '';
-    if (cabinetMessage) cabinetMessage.textContent = '';
-}
-
-function updateAuthButton() {
-    if (authBtn) {
-        authBtn.textContent = currentUser ? currentUser : 'Вход / Регистрация';
-    }
 }
 
 async function checkAuth() {
@@ -141,7 +144,6 @@ async function loadLinks() {
     }
 }
 
-
 document.getElementById('login-btn')?.addEventListener('click', async () => {
     console.log('Клик по кнопке Войти');
     if (!authLogin || !authPassword) {
@@ -184,6 +186,7 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
         if (authError) authError.textContent = 'Сетевая ошибка';
     }
 });
+
 document.getElementById('register-btn')?.addEventListener('click', async () => {
     console.log('Клик по кнопке Зарегистрироваться');
     if (!authLogin || !authPassword) {
@@ -229,7 +232,6 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
 
 document.getElementById('logout-btn')?.addEventListener('click', async () => {
     console.log('Выход из аккаунта');
-    const modal = document.getElementById('stats-modal');
     if (modal) modal.classList.add('hidden');
 
     try {
@@ -255,22 +257,23 @@ function renderLinks() {
         return;
     }
     container.innerHTML = links.map((link, index) => `
-    <div class="link-item" data-index="${index}">
-      <div class="link-info">
-        <a href="${link.dst_link}" target="_blank" class="short-link">${link.dst_link}</a>
-        <div class="long-link" title="${link.src_link}">${link.src_link}</div>
-      </div>
-      <div class="link-actions">
-        <button class="stats-btn" data-index="${index}">Статистика</button>
-        <button class="edit-btn" data-index="${index}">Редактировать</button>
-        <button class="delete-btn" data-index="${index}">Удалить</button>
-      </div>
-    </div>
-  `).join('');
+        <div class="link-item" data-index="${index}">
+            <div class="link-info">
+                <a href="${link.dst_link}" target="_blank" class="short-link">${link.dst_link}</a>
+                <div class="long-link" title="${link.src_link}">${link.src_link}</div>
+            </div>
+            <div class="link-actions">
+                <button class="stats-btn" data-index="${index}">Статистика</button>
+                <button class="copy-link-btn" data-index="${index}">Копировать</button>
+                <button class="download-qr-btn" data-index="${index}">QR-код</button>
+                <button class="edit-btn" data-index="${index}">Редактировать</button>
+                <button class="delete-btn" data-index="${index}">Удалить</button>
+            </div>
+        </div>
+    `).join('');
 
     container.addEventListener('click', handleLinkActions);
 }
-
 
 async function handleLinkActions(e) {
     const target = e.target;
@@ -292,6 +295,12 @@ async function handleLinkActions(e) {
     } else if (target.classList.contains('cancel-edit-btn')) {
         e.preventDefault();
         cancelEdit(parseInt(index));
+    } else if (target.classList.contains('copy-link-btn')) {
+        e.preventDefault();
+        copyLink(parseInt(index));
+    } else if (target.classList.contains('download-qr-btn')) {
+        e.preventDefault();
+        downloadQR(parseInt(index));
     }
 }
 
@@ -396,9 +405,9 @@ function enableInlineEdit(index) {
     const oldButtonsHtml = actionsDiv.innerHTML;
     actionsDiv.setAttribute('data-old-buttons', oldButtonsHtml);
     actionsDiv.innerHTML = `
-    <button class="save-edit-btn btn" data-index="${index}">Сохранить</button>
-    <button class="cancel-edit-btn btn" data-index="${index}">Отмена</button>
-  `;
+        <button class="save-edit-btn btn" data-index="${index}">Сохранить</button>
+        <button class="cancel-edit-btn btn" data-index="${index}">Отмена</button>
+    `;
 }
 
 async function saveEdit(index) {
@@ -466,10 +475,53 @@ function cancelEdit(index) {
     }
 }
 
+async function copyLink(index) {
+    if (!Array.isArray(userLinks) || !userLinks[index]) {
+        await loadLinks();
+        return;
+    }
+    const link = userLinks[index].dst_link;
+    try {
+        await navigator.clipboard.writeText(link);
+        if (cabinetMessage) {
+            cabinetMessage.textContent = 'Ссылка скопирована!';
+            setTimeout(() => {
+                if (cabinetMessage) cabinetMessage.textContent = '';
+            }, 2000);
+        }
+    } catch (err) {
+        console.error('Ошибка копирования:', err);
+        if (cabinetMessage) cabinetMessage.textContent = 'Не удалось скопировать';
+    }
+}
 
-const modal = document.getElementById('stats-modal');
-const modalClose = document.querySelector('.close-btn');
-const statsContainer = document.getElementById('stats-table-container');
+async function downloadQR(index) {
+    if (!Array.isArray(userLinks) || !userLinks[index]) {
+        await loadLinks();
+        return;
+    }
+    const link = userLinks[index].dst_link;
+    try {
+        const response = await fetch('/generateqrcode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ link })
+        });
+        if (!response.ok) throw new Error('Ошибка генерации QR-кода');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `qrcode-${index}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Ошибка скачивания QR-кода:', error);
+        if (cabinetMessage) cabinetMessage.textContent = 'Не удалось скачать QR-код';
+    }
+}
 
 if (modalClose) {
     modalClose.addEventListener('click', () => {
@@ -482,7 +534,6 @@ window.addEventListener('click', (e) => {
         modal.classList.add('hidden');
     }
 });
-
 
 function send_link() {
     fetch('/shorten', {
@@ -567,7 +618,6 @@ document.getElementById('download-qr-btn')?.addEventListener('click', function()
     }
 });
 
-
 function setupPasswordToggle(toggleButton) {
     toggleButton.addEventListener('click', function() {
         const wrapper = this.closest('.password-wrapper');
@@ -595,3 +645,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleButtons = document.querySelectorAll('.password-toggle');
     toggleButtons.forEach(btn => setupPasswordToggle(btn));
 });
+
+(function setupCookieToast() {
+    const COOKIE_CONSENT_KEY = 'cookieConsent';
+    const popup = document.getElementById('cookie-popup');
+    const closeBtn = document.getElementById('cookie-close');
+
+    if (!popup || !closeBtn) return;
+
+    const consentGiven = localStorage.getItem(COOKIE_CONSENT_KEY);
+    if (!consentGiven) {
+        popup.classList.remove('hidden');
+    }
+
+    closeBtn.addEventListener('click', () => {
+        localStorage.setItem(COOKIE_CONSENT_KEY, 'true');
+        popup.classList.add('hidden');
+    });
+})();
+
+(function setupStudyBanner() {
+    const STUDY_BANNER_KEY = 'studyBannerClosed';
+    const banner = document.getElementById('study-banner');
+    const closeBtn = document.getElementById('close-banner');
+
+    if (!banner || !closeBtn) return;
+
+    const isClosed = localStorage.getItem(STUDY_BANNER_KEY);
+    if (!isClosed) {
+        banner.classList.remove('hidden');
+    }
+
+    closeBtn.addEventListener('click', () => {
+        localStorage.setItem(STUDY_BANNER_KEY, 'true');
+        banner.classList.add('hidden');
+    });
+})();
