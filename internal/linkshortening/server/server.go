@@ -406,13 +406,13 @@ func StartServer() *Server {
 	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
 	AuthMux.HandleFunc("POST /updatesrclink", server.UpdateSrcLinkHandler)
 	AuthMux.HandleFunc("GET /linksinfo", server.GetLinksInfo)
-	AuthMux.HandleFunc("GET /linkinfo", server.GetLinkInfo)
+	AuthMux.HandleFunc("POST /linkinfo", server.GetLinkInfo)
 
 	AuthHandler := server.CheckAuth(AuthMux)
 	server.mux.Handle("POST /deletelink", AuthHandler)
 	server.mux.Handle("POST /updatesrclink", AuthHandler)
 	server.mux.Handle("GET /linksinfo", AuthHandler)
-	server.mux.Handle("GET /linkinfo", AuthHandler)
+	server.mux.Handle("POST /linkinfo", AuthHandler)
 
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 

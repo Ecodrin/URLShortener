@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
@@ -7,32 +7,102 @@
   <title>Сокращатель ссылок + QR-код</title>
 </head>
 <body>
-<button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
+<div id="app">
+  <div class="header-controls">
+    <button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
+  </div>
 
-<div class="wrapper">
-  <h1>Сократи и создай QR</h1>
 
-  <div class="main-content">
-    <div class="left-column card">
-      <div class="input-group">
-        <input type="text" id="long-url" class="url-input" placeholder="Вставьте длинную ссылку..." />
-        <button id="generate-btn" class="btn" onclick="send_link()">Создать короткую ссылку</button>
-      </div>
-
-      <div class="short-url-group">
-        <input type="text" id="short-url" class="short-url-field" readonly placeholder="Короткая ссылка появится здесь" />
-        <button id="copy-btn" class="copy-btn" onclick="copyPlainText()">Копировать</button>
+  <div id="main-view" class="view active">
+    <div class="wrapper">
+      <h1>Сократи и создай QR</h1>
+      <div class="main-content">
+        <div class="left-column card">
+          <div class="input-group">
+            <input type="text" id="long-url" class="url-input" placeholder="Вставьте длинную ссылку..." />
+            <button id="generate-btn" class="btn">Создать короткую ссылку</button>
+          </div>
+          <div class="short-url-group">
+            <input type="text" id="short-url" class="short-url-field" readonly placeholder="Короткая ссылка появится здесь" />
+            <button id="copy-btn" class="copy-btn">Копировать</button>
+          </div>
+        </div>
+        <div class="right-column card">
+          <div class="qr-container">
+            <img id="qr-image" src="" alt="QR-код"/>
+          </div>
+          <button id="download-qr-btn" class="btn download-btn">Скачать QR-код</button>
+        </div>
       </div>
     </div>
+  </div>
 
-    <div class="right-column card">
-      <div class="qr-container">
-        <img id="qr-image" src=""/>
+
+  <div id="cabinet-view" class="view">
+    <div class="wrapper cabinet-wrapper">
+      <h2>Личный кабинет</h2>
+
+
+      <div id="auth-forms" class="cabinet-section">
+        <div class="card form-card">
+          <h3>Авторизация / Регистрация</h3>
+
+          <div class="input-wrapper">
+            <input type="text" id="auth-login" class="url-input" placeholder="Логин (буквы и цифры)" />
+            <div class="hint-tooltip">Допустимы только буквы и цифры, до 50 символов</div>
+          </div>
+
+          <div class="input-wrapper password-wrapper">
+            <input type="password" id="auth-password" class="url-input" placeholder="Пароль" />
+            <button type="button" class="password-toggle" aria-label="Показать пароль">
+              <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20">
+                <path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5zM12 17c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z"/>
+                <circle cx="12" cy="12" r="2.5"/>
+              </svg>
+              <svg class="eye-icon eye-slash" viewBox="0 0 18 18" width="20" height="20" style="display:none;">
+                <use xlink:href="#IconEyeCrossedSmall__a" fill-rule="evenodd"></use>
+              </svg>
+            </button>
+            <div class="hint-tooltip">Допустимы буквы, цифры и символы _ - !, до 50 символов</div>
+          </div>
+
+          <div id="auth-error" class="error-message"></div>
+
+          <div class="button-group">
+            <button id="login-btn" class="btn">Войти</button>
+            <button id="register-btn" class="btn">Зарегистрироваться</button>
+          </div>
+        </div>
       </div>
-      <button id="download-qr-btn" class="btn download-btn">Скачать QR-код</button>
+
+      <div id="links-list" class="cabinet-section hidden">
+        <div class="card links-card">
+          <div class="links-header">
+            <h3>Мои ссылки</h3>
+            <button id="logout-btn" class="copy-btn">Выйти</button>
+          </div>
+          <div id="cabinet-message" class="error-message" style="margin-bottom: 1rem;"></div>
+          <div id="links-container" class="links-container"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
+<div id="stats-modal" class="modal hidden">
+  <div class="modal-content card">
+    <span class="close-btn">&times;</span>
+    <h3>Статистика переходов</h3>
+    <div id="stats-table-container"></div>
+  </div>
+</div>
+
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <path id="IconEyeCrossedSmall__a" d="M7.214 8.628L4.746 6.16a7.036 7.036 0 00-2.69 3.34c1.058 2.768 3.81 4.608 6.943 4.608a7.757 7.757 0 003.069-.626L9.82 11.236c-.25.106-.529.166-.821.166-1.108 0-2.01-.853-2.01-1.902 0-.314.08-.61.224-.872zm1.799-1.03c1.102.007 1.997.857 1.997 1.902l-.003.093 2.822 2.822A6.989 6.989 0 0015.944 9.5C14.886 6.732 12.134 4.892 9 4.892a7.79 7.79 0 00-2.337.356l2.35 2.35zM3.359 4.773L1.293 2.707C.35 1.764 1.764.35 2.707 1.293l2.47 2.47A9.862 9.862 0 019 3c4.117 0 7.716 2.498 8.954 6.215a.895.895 0 010 .57 8.855 8.855 0 01-2.747 4.007l1.501 1.5c.943.944-.471 2.358-1.414 1.415l-1.788-1.788A9.814 9.814 0 018.999 16C4.883 16 1.284 13.502.046 9.785a.895.895 0 010-.57A8.899 8.899 0 013.36 4.773z"></path>
+  </defs>
+</svg>
 
 <script src="src/main.js"></script>
 </body>
