@@ -1,0 +1,35 @@
+name: CI/CD PipeLine
+
+
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Start Servie
+      run: docker compose up -d
+    - name: Wait DB
+      run: sleep 15
+    
+    - name: Stop service
+      run: docker compose down
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: deploy
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+        chmod 600 key.pem
+        ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd ${{ secrets.PROJECT_FOLDER }}
+          git pull origin main
+          docker compose up -d
+        "
+        rm key.pem
