@@ -8,6 +8,12 @@
 </head>
 <body>
 <div id="app">
+  <div id="study-banner" class="study-banner hidden">
+    <div class="banner-container">
+      <span class="banner-text">Учебный проект. Сайт будет работать примерно 1–2 месяца.</span>
+      <button id="close-banner" class="banner-close" aria-label="Закрыть">×</button>
+    </div>
+  </div>
   <div class="header-controls">
     <button id="auth-btn" class="auth-btn">Вход / Регистрация</button>
   </div>
@@ -86,6 +92,19 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="cookie-popup" class="cookie-popup hidden">
+    <div class="cookie-popup-content">
+      <span class="cookie-message">Для работы сайта используются сессионные cookies.</span>
+      <button id="cookie-close" class="cookie-close" aria-label="Закрыть">×</button>
+    </div>
+  </div>
+
+  <div class="site-by">
+    site by
+    <a href="https://creator1.example.com" target="_blank" rel="noopener noreferrer">creator1</a>,
+    <a href="https://creator2.example.com" target="_blank" rel="noopener noreferrer">creator2</a>
   </div>
 </div>
 
