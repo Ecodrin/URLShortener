@@ -269,13 +269,46 @@ img:not([src]) {
   align-items: stretch;
 }
 
-.form-card {
-  flex: 1 1 280px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  align-items: center;
+#auth-error {
+  width: 100%;
+  height: 2.5rem;
+  visibility: hidden;
+  overflow-y: auto;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 0 0 0;
+  border-radius: 0.5rem;
+  color: #dc2626;
+  font-size: 0.9rem;
+  background-color: rgba(220, 38, 38, 0.05);
+  transition: visibility 0.2s;
+  text-align: center;
 }
+#cabinet-message,
+#shorten-error {
+  min-height: 2rem;
+  visibility: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 0;
+  color: #dc2626;
+  font-size: 0.9rem;
+  background-color: rgba(220, 38, 38, 0.05);
+  transition: visibility 0.2s;
+}
+
+.form-card {
+  width: 400px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+
 .form-card h3 {
   margin: 0 0 0.5rem;
   font-weight: 600;
@@ -283,12 +316,19 @@ img:not([src]) {
 }
 .form-card .url-input {
   width: 100%;
-  background-image: none;
-  padding: 1rem 1.25rem;
+  box-sizing: border-box;
 }
 .form-card .btn {
   width: 100%;
 }
+
+
+.form-card .url-input,
+.form-card .btn {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 
 .links-card {
   width: 100%;
@@ -528,15 +568,16 @@ img:not([src]) {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   width: 100%;
 }
 
 .button-group .btn {
   width: 100%;
+  box-sizing: border-box;
 }
 
-/* Cookie Toast — центрирован снизу */
+
 .cookie-popup {
   position: fixed;
   bottom: 1.5rem;
@@ -591,12 +632,19 @@ img:not([src]) {
   border-radius: 50%;
 }
 
+.error-message {
+  color: #dc2626;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  text-align: left;
+  width: 100%;
+}
+
 .cookie-close:hover {
   color: #1f2937;
   background: #f3f4f6;
 }
 
-/* Блок с авторами — всегда в правом нижнем углу */
 .site-by {
   position: fixed;
   bottom: 1rem;
@@ -626,12 +674,11 @@ img:not([src]) {
   text-decoration: underline;
 }
 
-/* Адаптивность для мобильных */
 @media (max-width: 600px) {
   .cookie-popup {
     width: 90%;
     max-width: none;
-    bottom: 5rem; /* поднимаем выше, чтобы не перекрывать авторов */
+    bottom: 5rem;
   }
   .site-by {
     bottom: 1rem;
@@ -642,7 +689,6 @@ img:not([src]) {
   }
 }
 
-/* Баннер "Учебный проект" */
 .study-banner {
   position: fixed;
   top: 1rem;
@@ -650,7 +696,7 @@ img:not([src]) {
   width: 100%;
   display: flex;
   justify-content: center;
-  pointer-events: none; /* чтобы клик проходил сквозь фон, но не сквозь контейнер */
+  pointer-events: none;
   z-index: 3000;
 }
 
@@ -667,14 +713,14 @@ img:not([src]) {
   gap: 1rem;
   font-size: 0.9rem;
   font-weight: 500;
-  pointer-events: auto; /* контейнер кликабелен */
+  pointer-events: auto;
   max-width: 90%;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 
 .study-banner.hidden {
-  display: none; /* или можно оставить с transform, но скрыть */
+  display: none;
 }
 
 .study-banner.hidden .banner-container {

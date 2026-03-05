@@ -14,9 +14,16 @@ const modal = document.getElementById('stats-modal');
 const modalClose = document.querySelector('.close-btn');
 const statsContainer = document.getElementById('stats-table-container');
 
+function showError(element, message) {
+    if (!element) return;
+    element.textContent = message;
+    element.style.visibility = message ? 'visible' : 'hidden';
+}
+
+
 function clearErrors() {
-    if (authError) authError.textContent = '';
-    if (cabinetMessage) cabinetMessage.textContent = '';
+    showError(authError, '');
+    showError(cabinetMessage, '');
 }
 
 function updateAuthButton() {
@@ -46,6 +53,7 @@ function validateLoginPassword(login, password) {
     return { isValid: true, message: '' };
 }
 
+
 async function checkAuth() {
     console.log('Проверка авторизации...');
     try {
@@ -73,6 +81,7 @@ async function checkAuth() {
 }
 checkAuth();
 
+
 function showMainView() {
     console.log('Переключение на главную');
     mainView.classList.add('active');
@@ -97,6 +106,7 @@ authBtn.addEventListener('click', () => {
     }
 });
 
+
 function updateCabinetView() {
     console.log('updateCabinetView, currentUser =', currentUser);
     const authForms = document.getElementById('auth-forms');
@@ -112,9 +122,10 @@ function updateCabinetView() {
         if (linksList) linksList.classList.add('hidden');
         if (authLogin) authLogin.value = '';
         if (authPassword) authPassword.value = '';
-        if (authError) authError.textContent = '';
+        showError(authError, '');
     }
 }
+
 
 async function loadLinks() {
     console.log('Загрузка ссылок...');
@@ -125,7 +136,7 @@ async function loadLinks() {
             const links = await response.json();
             userLinks = Array.isArray(links) ? links : [];
             renderLinks();
-            if (cabinetMessage) cabinetMessage.textContent = '';
+            showError(cabinetMessage, '');
         } else if (response.status === 401) {
             console.log('Сессия истекла, сбрасываем пользователя');
             sessionStorage.removeItem('currentUser');
@@ -134,12 +145,12 @@ async function loadLinks() {
             updateAuthButton();
             updateCabinetView();
         } else {
-            if (cabinetMessage) cabinetMessage.textContent = 'Ошибка загрузки ссылок';
+            showError(cabinetMessage, 'Ошибка загрузки ссылок');
             if (!Array.isArray(userLinks)) userLinks = [];
         }
     } catch (error) {
         console.error('Ошибка загрузки ссылок:', error);
-        if (cabinetMessage) cabinetMessage.textContent = 'Сетевая ошибка при загрузке ссылок';
+        showError(cabinetMessage, 'Сетевая ошибка при загрузке ссылок');
         if (!Array.isArray(userLinks)) userLinks = [];
     }
 }
@@ -155,7 +166,7 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
 
     const validation = validateLoginPassword(login, password);
     if (!validation.isValid) {
-        if (authError) authError.textContent = validation.message;
+        showError(authError, validation.message);
         return;
     }
 
@@ -174,16 +185,27 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
             updateCabinetView();
             showCabinetView();
             await loadLinks();
-            if (authError) authError.textContent = '';
+            showError(authError, '');
             if (authLogin) authLogin.value = '';
             if (authPassword) authPassword.value = '';
         } else {
-            const errMsg = await response.text();
-            if (authError) authError.textContent = errMsg || 'Ошибка авторизации';
+            let errMsg;
+            try {
+                errMsg = await response.text();
+            } catch (e) {
+                errMsg = '';
+            }
+            if (response.status >= 500) {
+                showError(authError, 'Ошибка сервера. Попробуйте позже.');
+            } else if (response.status === 401) {
+                showError(authError,  'Неверный логин или пароль');
+            } else {
+                showError(authError, 'Ошибка авторизации');
+            }
         }
     } catch (error) {
         console.error('Ошибка при авторизации:', error);
-        if (authError) authError.textContent = 'Сетевая ошибка';
+        showError(authError, 'Сетевая ошибка. Проверьте подключение.');
     }
 });
 
@@ -198,7 +220,7 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
 
     const validation = validateLoginPassword(login, password);
     if (!validation.isValid) {
-        if (authError) authError.textContent = validation.message;
+        showError(authError, validation.message);
         return;
     }
 
@@ -217,16 +239,27 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
             updateCabinetView();
             showCabinetView();
             await loadLinks();
-            if (authError) authError.textContent = '';
+            showError(authError, '');
             if (authLogin) authLogin.value = '';
             if (authPassword) authPassword.value = '';
         } else {
-            const errMsg = await response.text();
-            if (authError) authError.textContent = errMsg || 'Ошибка регистрации';
+            let errMsg;
+            try {
+                errMsg = await response.text();
+            } catch (e) {
+                errMsg = '';
+            }
+            if (response.status >= 500) {
+                showError(authError, 'Ошибка сервера. Пожалуйста, попробуйте позже.');
+            } else if (response.status === 409) {
+                showError(authError, errMsg || 'Пользователь уже существует');
+            } else {
+                showError(authError, errMsg || 'Ошибка регистрации');
+            }
         }
     } catch (error) {
         console.error('Ошибка при регистрации:', error);
-        if (authError) authError.textContent = 'Сетевая ошибка';
+        showError(authError, 'Сетевая ошибка. Проверьте подключение.');
     }
 });
 
@@ -323,11 +356,11 @@ async function deleteLink(index) {
             await loadLinks();
         } else {
             const errMsg = await response.text();
-            if (cabinetMessage) cabinetMessage.textContent = errMsg || 'Ошибка при удалении';
+            showError(cabinetMessage, errMsg || 'Ошибка при удалении');
         }
     } catch (error) {
         console.error('Ошибка удаления:', error);
-        if (cabinetMessage) cabinetMessage.textContent = 'Сетевая ошибка при удалении';
+        showError(cabinetMessage, 'Сетевая ошибка при удалении');
     }
 }
 
@@ -423,7 +456,7 @@ async function saveEdit(index) {
 
     const newSrc = input.value.trim();
     if (!newSrc) {
-        if (cabinetMessage) cabinetMessage.textContent = 'Ссылка не может быть пустой';
+        showError(cabinetMessage, 'Ссылка не может быть пустой');
         return;
     }
 
@@ -443,12 +476,12 @@ async function saveEdit(index) {
             await loadLinks();
         } else {
             const errMsg = await response.text();
-            if (cabinetMessage) cabinetMessage.textContent = errMsg || 'Ошибка при обновлении';
+            showError(cabinetMessage, errMsg || 'Ошибка при обновлении');
             cancelEdit(index);
         }
     } catch (error) {
         console.error('Ошибка редактирования:', error);
-        if (cabinetMessage) cabinetMessage.textContent = 'Сетевая ошибка';
+        showError(cabinetMessage, 'Сетевая ошибка');
         cancelEdit(index);
     }
 }
@@ -483,15 +516,13 @@ async function copyLink(index) {
     const link = userLinks[index].dst_link;
     try {
         await navigator.clipboard.writeText(link);
-        if (cabinetMessage) {
-            cabinetMessage.textContent = 'Ссылка скопирована!';
-            setTimeout(() => {
-                if (cabinetMessage) cabinetMessage.textContent = '';
-            }, 2000);
-        }
+        showError(cabinetMessage, 'Ссылка скопирована!');
+        setTimeout(() => {
+            showError(cabinetMessage, '');
+        }, 2000);
     } catch (err) {
         console.error('Ошибка копирования:', err);
-        if (cabinetMessage) cabinetMessage.textContent = 'Не удалось скопировать';
+        showError(cabinetMessage, 'Не удалось скопировать');
     }
 }
 
@@ -519,7 +550,7 @@ async function downloadQR(index) {
         URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Ошибка скачивания QR-кода:', error);
-        if (cabinetMessage) cabinetMessage.textContent = 'Не удалось скачать QR-код';
+        showError(cabinetMessage, 'Не удалось скачать QR-код');
     }
 }
 
@@ -535,14 +566,33 @@ window.addEventListener('click', (e) => {
     }
 });
 
+
 function send_link() {
+    const longUrlInput = document.getElementById('long-url');
+    const errorDiv = document.getElementById('shorten-error');
+    if (!longUrlInput || !errorDiv) return;
+
+    const url = longUrlInput.value.trim();
+
+    showError(errorDiv, '');
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        showError(errorDiv, 'Ссылка должна начинаться с http:// или https://');
+        return;
+    }
+
     fetch('/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 'link': document.getElementById('long-url')?.value })
+        body: JSON.stringify({ 'link': url })
     })
         .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+
+                return response.text().then(text => {
+                    throw new Error(text || `HTTP error! status: ${response.status}`);
+                });
+            }
             return response.json();
         })
         .then(data => {
@@ -553,7 +603,14 @@ function send_link() {
                 loadLinks();
             }
         })
-        .catch(error => console.error('Failed to send link: ', error));
+        .catch(error => {
+            console.error('Failed to send link: ', error);
+            let errorMsg = error.message;
+            if (errorMsg.includes('400') || errorMsg.includes('Bad Request')) {
+                errorMsg = 'Ссылка неправильного формата';
+            }
+            showError(errorDiv, errorMsg || 'Не удалось сократить ссылку');
+        });
 }
 
 function qrcode_generation() {
