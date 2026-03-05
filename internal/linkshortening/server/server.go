@@ -18,6 +18,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/skip2/go-qrcode"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Server struct {
@@ -43,6 +44,16 @@ func IsValidPath(path string) bool {
 		return false
 	}
 	return true
+}
+
+func (server *Server) GetHashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), server.config.hashCost)
+	return string(bytes), err
+}
+
+func (server *Server) CompareHashAndPassword(hash, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
 
 func (server *Server) CreateNewLinkHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,9 +144,16 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hashPassword, err := server.GetHashPassword(msg.Password)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		server.logger.Println("error in RegisterHandler server.GetHashPassword: ", err.Error())
+		return
+	}
+
 	succes, err := db.CreateUser(server.DB, handlers.User{
 		Login:    msg.Login,
-		Password: msg.Password,
+		Password: hashPassword,
 	})
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -180,10 +198,12 @@ func (server *Server) AuthHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	if user.Password != msg.Password {
+
+	if server.CompareHashAndPassword(user.Password, msg.Password) {
 		http.Error(w, "incorrect login or password", http.StatusBadRequest)
 		return
 	}
+
 	jwtToken, err := handlers.CreateJWTToken(msg.Login, server.config.JWTSecret)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -394,6 +414,9 @@ func StartServer() *Server {
 	server := Server{
 		config: LoadConfig(),
 	}
+	if server.config == nil {
+		panic("error in load config")
+	}
 
 	server.mux = http.NewServeMux()
 	server.mux.HandleFunc("POST /shorten", server.CreateNewLinkHandler)
@@ -406,13 +429,13 @@ func StartServer() *Server {
 	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
 	AuthMux.HandleFunc("POST /updatesrclink", server.UpdateSrcLinkHandler)
 	AuthMux.HandleFunc("GET /linksinfo", server.GetLinksInfo)
-	AuthMux.HandleFunc("GET /linkinfo", server.GetLinkInfo)
+	AuthMux.HandleFunc("POST /linkinfo", server.GetLinkInfo)
 
 	AuthHandler := server.CheckAuth(AuthMux)
 	server.mux.Handle("POST /deletelink", AuthHandler)
 	server.mux.Handle("POST /updatesrclink", AuthHandler)
 	server.mux.Handle("GET /linksinfo", AuthHandler)
-	server.mux.Handle("GET /linkinfo", AuthHandler)
+	server.mux.Handle("POST /linkinfo", AuthHandler)
 
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 

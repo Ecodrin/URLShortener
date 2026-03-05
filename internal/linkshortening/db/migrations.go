@@ -25,7 +25,7 @@ func CreateUsersTable(DB *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
 			login VARCHAR(50),
-			password VARCHAR(50)
+			password VARCHAR(60)
 		)
 	`
 
