@@ -22,7 +22,7 @@ type UserClaims struct {
 }
 
 func ValidateLoginPassword(login, password string) bool {
-	if len(login) > 50 || len(password) > 50 {
+	if len(login) > 50 || len(password) > 50 || len(password) < 5 || len(login) < 3 {
 		return false
 	}
 
