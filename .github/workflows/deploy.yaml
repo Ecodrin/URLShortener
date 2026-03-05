@@ -32,7 +32,7 @@ jobs:
     - name: Start Servie
       run: docker compose up -d
     - name: Wait DB
-      run: sleep 15
+      run: sleep 10
     - name: Stop service
       run: |
         docker compose down
