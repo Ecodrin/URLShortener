@@ -53,6 +53,9 @@ func (server *Server) GetHashPassword(password string) (string, error) {
 
 func (server *Server) CompareHashAndPassword(hash, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err != nil {
+		server.logger.Println("error in CompareHashAndPassword:", err)
+	}
 	return err == nil
 }
 
@@ -195,11 +198,15 @@ func (server *Server) AuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := db.GetUserByLogin(server.DB, msg.Login)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "incorrect login or password", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	if server.CompareHashAndPassword(user.Password, msg.Password) {
+	if !server.CompareHashAndPassword(user.Password, msg.Password) {
 		http.Error(w, "incorrect login or password", http.StatusBadRequest)
 		return
 	}
