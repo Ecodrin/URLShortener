@@ -33,6 +33,13 @@ function updateAuthButton() {
 }
 
 function validateLoginPassword(login, password) {
+    if (login.length < 3) {
+        return { isValid: false, message: 'Логин должен содержать не менее 3 символов' };
+    }
+    if (password.length < 5) {
+        return { isValid: false, message: 'Пароль должен содержать не менее 5 символов' };
+    }
+
     if (login.length > 50) {
         return { isValid: false, message: 'Логин должен содержать не более 50 символов' };
     }
@@ -197,7 +204,7 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
             }
             if (response.status >= 500) {
                 showError(authError, 'Ошибка сервера. Попробуйте позже.');
-            } else if (response.status === 401) {
+            } else if (response.status === 400) {
                 showError(authError,  'Неверный логин или пароль');
             } else {
                 showError(authError, 'Ошибка авторизации');
@@ -251,10 +258,10 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
             }
             if (response.status >= 500) {
                 showError(authError, 'Ошибка сервера. Пожалуйста, попробуйте позже.');
-            } else if (response.status === 409) {
-                showError(authError, errMsg || 'Пользователь уже существует');
+            } else if (response.status === 400) {
+                showError(authError, 'Пользователь уже существует');
             } else {
-                showError(authError, errMsg || 'Ошибка регистрации');
+                showError(authError,  'Ошибка регистрации');
             }
         }
     } catch (error) {
@@ -361,6 +368,40 @@ async function deleteLink(index) {
     } catch (error) {
         console.error('Ошибка удаления:', error);
         showError(cabinetMessage, 'Сетевая ошибка при удалении');
+    }
+}
+
+function copyToClipboard(text, onError) {
+    // Современный API
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(err => {
+            console.error('Clipboard API error:', err);
+            if (onError) onError();
+        });
+        return;
+    }
+
+    // Fallback для старых браузеров и небезопасных контекстов
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (!successful) {
+            console.error('Fallback copy failed');
+            if (onError) onError();
+        }
+    } catch (err) {
+        console.error('Fallback copy error:', err);
+        if (onError) onError();
+    } finally {
+        document.body.removeChild(textArea);
     }
 }
 
@@ -514,17 +555,11 @@ async function copyLink(index) {
         return;
     }
     const link = userLinks[index].dst_link;
-    try {
-        await navigator.clipboard.writeText(link);
-        showError(cabinetMessage, 'Ссылка скопирована!');
-        setTimeout(() => {
-            showError(cabinetMessage, '');
-        }, 2000);
-    } catch (err) {
-        console.error('Ошибка копирования:', err);
-        showError(cabinetMessage, 'Не удалось скопировать');
-    }
+    copyToClipboard(link, () => {
+        showError(cabinetMessage, 'Не удалось скопировать ссылку');
+    });
 }
+
 
 async function downloadQR(index) {
     if (!Array.isArray(userLinks) || !userLinks[index]) {
@@ -642,11 +677,10 @@ function qrcode_generation() {
 function copyPlainText() {
     const content = document.getElementById('short-url')?.value;
     if (!content) return;
-    try {
-        navigator.clipboard.writeText(content);
-    } catch (err) {
-        console.error('Failed to copy text: ', err);
-    }
+
+    copyToClipboard(content, () => {
+        console.warn('Не удалось скопировать текст');
+    });
 }
 
 function downloadImage(imgElement) {
