@@ -103,7 +103,7 @@ h1 {
 
 .btn {
   padding: 0.875rem 2rem;
-  background: #3b82f6;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 2.5rem;
@@ -116,14 +116,14 @@ h1 {
 }
 
 .btn:hover {
-  background: #2563eb;
+  background: #1d4ed8;
   transform: translateY(-2px);
   box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
 }
 
 .btn:active {
   transform: translateY(0);
-  background: #1d4ed8;
+  background: #1e3a8a;
 }
 
 .short-url-group {
