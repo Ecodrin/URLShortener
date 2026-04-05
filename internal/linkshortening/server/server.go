@@ -174,11 +174,24 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cookie := http.Cookie{
-		Name:    "session_id",
-		Value:   jwtToken,
-		Expires: time.Now().Add(24 * time.Hour),
+		Name:     "session_id",
+		Value:    jwtToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, &cookie)
+
+	cookie = http.Cookie{
+		Name:     "username",
+		Value:    msg.Login,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	http.SetCookie(w, &cookie)
+
 	w.WriteHeader(http.StatusOK)
 	server.logger.Printf("Create user login '%s' password '%s'\n", msg.Login, msg.Password)
 }
@@ -217,12 +230,26 @@ func (server *Server) AuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cookie := http.Cookie{
-		Name:    "session_id",
-		Value:   jwtToken,
-		Expires: time.Now().Add(24 * time.Hour),
+		Name:     "session_id",
+		Value:    jwtToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
-	server.logger.Println("user", msg.Login, "auth successful")
+
 	http.SetCookie(w, &cookie)
+
+	cookie = http.Cookie{
+		Name:     "username",
+		Value:    user.Login,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	http.SetCookie(w, &cookie)
+
+	server.logger.Println("user", msg.Login, "auth successful")
 	w.WriteHeader(http.StatusOK)
 }
 
