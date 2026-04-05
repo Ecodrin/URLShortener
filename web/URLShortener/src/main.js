@@ -31,108 +31,6 @@ function updateAuthButton() {
     }
 }
 
-const routes = {
-    '/': 'main-view',
-    '/cabinet': 'cabinet-view'
-};
-
-let currentRoute = '/';
-
-function showViewByRoute(route) {
-    const mainEl = document.getElementById('main-view');
-    const cabinetEl = document.getElementById('cabinet-view');
-    const notFoundEl = document.getElementById('not-found-view');
-
-    // Скрываем все
-    mainEl.classList.remove('active');
-    cabinetEl.classList.remove('active');
-    if (notFoundEl) notFoundEl.classList.remove('active');
-
-    const viewId = routes[route];
-    if (viewId && document.getElementById(viewId)) {
-        document.getElementById(viewId).classList.add('active');
-        currentRoute = route;
-        if (viewId === 'cabinet-view' && !currentUser) {
-            updateCabinetView();
-        }
-        updateAuthButton();
-    } else {
-        if (notFoundEl) notFoundEl.classList.add('active');
-        currentRoute = '404';
-    }
-
-    if (route !== currentRoute && route !== undefined) {
-        if (route !== '404' && routes[route]) {
-            window.history.pushState({ route }, '', route);
-        } else if (route === '404') {
-            window.history.pushState({ route: '404' }, '', '/404');
-        }
-    }
-}
-
-function handleNavigation(e) {
-    const target = e.target.closest('a');
-    if (!target) return;
-    const href = target.getAttribute('href');
-    if (href && href.startsWith('/') && !href.startsWith('//') && !target.hasAttribute('download') && !target.target) {
-        e.preventDefault();
-        const path = href;
-        if (routes[path]) {
-            showViewByRoute(path);
-        } else {
-            showViewByRoute('404');
-        }
-    }
-}
-
-if (authBtn) {
-    authBtn.addEventListener('click', () => {
-        if (currentRoute === '/cabinet') {
-            showViewByRoute('/');
-        } else {
-            showViewByRoute('/cabinet');
-        }
-    });
-}
-
-const home404Btn = document.getElementById('404-home-btn');
-if (home404Btn) {
-    home404Btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showViewByRoute('/');
-    });
-}
-
-const back404Btn = document.getElementById('404-back-btn');
-if (back404Btn) {
-    back404Btn.addEventListener('click', () => {
-        window.history.back();
-    });
-}
-
-window.addEventListener('popstate', (event) => {
-    const route = event.state?.route || window.location.pathname;
-    if (routes[route]) {
-        showViewByRoute(route);
-    } else {
-        showViewByRoute('404');
-    }
-});
-
-function initRouter() {
-    const path = window.location.pathname;
-    if (routes[path]) {
-        showViewByRoute(path);
-    } else {
-        showViewByRoute('404');
-    }
-    document.body.addEventListener('click', handleNavigation);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    initRouter();
-});
-
 function validateLoginPassword(login, password) {
     if (login.length < 3) {
         return { isValid: false, message: 'Логин должен содержать не менее 3 символов' };
@@ -289,7 +187,6 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
                 showError(authError, 'Ошибка авторизации');
             }
         }
-        showViewByRoute('/cabinet');
     } catch (error) {
         console.error('Ошибка при авторизации:', error);
         showError(authError, 'Сетевая ошибка. Проверьте подключение.');
@@ -331,7 +228,6 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
                 showError(authError, 'Ошибка регистрации');
             }
         }
-        showViewByRoute('/cabinet');
     } catch (error) {
         console.error('Ошибка при регистрации:', error);
         showError(authError, 'Сетевая ошибка. Проверьте подключение.');
@@ -352,7 +248,6 @@ document.getElementById('logout-btn')?.addEventListener('click', async () => {
         updateCabinetView();
         showMainView();
         resetShortUrlAndQR();
-        showViewByRoute('/'); // после выхода переходим на главную
     }
 });
 
