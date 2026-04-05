@@ -385,7 +385,8 @@ async function showStats(index) {
         if (stats && stats.length > 0) {
             html = '<table><thead><tr><th>Браузер</th><th>Время перехода</th><th>ID ссылки</th></tr></thead><tbody>';
             stats.forEach(row => {
-                html += `<tr><td>${row.browser || ''}</td><td>${row.timestamp || ''}</td><td>${row.link_id || ''}</td></tr>`;
+                const date = new Date(row.timestamp)
+                html += `<tr><td>${row.browser || ''}</td><td>${date.toLocaleString() || ''}</td><td>${row.link_id || ''}</td></tr>`;
             });
             html += '</tbody></table>';
         } else {
