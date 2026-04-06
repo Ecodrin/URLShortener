@@ -1,3 +1,4 @@
+
 let currentUser = null;
 let userLinks = [];
 
@@ -13,6 +14,24 @@ const cabinetMessage = document.getElementById('cabinet-message');
 const modal = document.getElementById('stats-modal');
 const modalClose = document.querySelector('.close-btn');
 const statsContainer = document.getElementById('stats-table-container');
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+function setCookie(name, value, days = 7) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = `expires=${date.toUTCString()}`;
+    document.cookie = `${name}=${value}; ${expires}; path=/`;
+}
+
+function deleteCookie(name) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+}
 
 function showError(element, message) {
     if (!element) return;
@@ -60,7 +79,6 @@ function resetShortUrlAndQR() {
     const qrImage = document.getElementById('qr-image');
     if (shortUrlField) shortUrlField.value = '';
     if (qrImage) qrImage.src = '';
-    console.log('Поле короткой ссылки и QR-код сброшены');
 }
 
 async function checkAuth() {
@@ -70,11 +88,17 @@ async function checkAuth() {
         if (response.ok) {
             const links = await response.json();
             userLinks = Array.isArray(links) ? links : [];
-            currentUser = sessionStorage.getItem('currentUser') || 'Пользователь';
+            const username = getCookie('username');
+            if (username) {
+                currentUser = username;
+            } else {
+                currentUser = 'Пользователь';
+                setCookie('username', currentUser, 7);
+            }
             updateAuthButton();
             updateCabinetView();
         } else {
-            sessionStorage.removeItem('currentUser');
+            deleteCookie('username');
             currentUser = null;
             userLinks = [];
             updateAuthButton();
@@ -86,7 +110,6 @@ async function checkAuth() {
         userLinks = [];
     }
 }
-checkAuth();
 
 function showMainView() {
     mainView.classList.add('active');
@@ -136,7 +159,7 @@ async function loadLinks() {
             renderLinks();
             showError(cabinetMessage, '');
         } else if (response.status === 401) {
-            sessionStorage.removeItem('currentUser');
+            deleteCookie('username');
             currentUser = null;
             userLinks = [];
             updateAuthButton();
@@ -169,14 +192,14 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
         });
         if (response.ok) {
             currentUser = login;
-            sessionStorage.setItem('currentUser', login);
+            setCookie('username', login, 7);
             updateAuthButton();
             updateCabinetView();
             showCabinetView();
             await loadLinks();
             showError(authError, '');
-            if (authLogin) authLogin.value = '';
-            if (authPassword) authPassword.value = '';
+            authLogin.value = '';
+            authPassword.value = '';
             resetShortUrlAndQR();
         } else {
             if (response.status >= 500) {
@@ -210,14 +233,14 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
         });
         if (response.ok) {
             currentUser = login;
-            sessionStorage.setItem('currentUser', login);
+            setCookie('username', login, 7);
             updateAuthButton();
             updateCabinetView();
             showCabinetView();
             await loadLinks();
             showError(authError, '');
-            if (authLogin) authLogin.value = '';
-            if (authPassword) authPassword.value = '';
+            authLogin.value = '';
+            authPassword.value = '';
             resetShortUrlAndQR();
         } else {
             if (response.status >= 500) {
@@ -241,7 +264,7 @@ document.getElementById('logout-btn')?.addEventListener('click', async () => {
     } catch (e) {
         console.error('Ошибка при выходе:', e);
     } finally {
-        sessionStorage.removeItem('currentUser');
+        deleteCookie('username');
         currentUser = null;
         userLinks = [];
         updateAuthButton();
@@ -541,8 +564,6 @@ function send_link() {
     const url = longUrlInput.value.trim();
     showError(errorDiv, '');
 
-    resetShortUrlAndQR();
-
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         showError(errorDiv, 'Ссылка должна начинаться с http:// или https://');
         return;
@@ -675,6 +696,15 @@ function setupPasswordToggle(toggleButton) {
 document.addEventListener('DOMContentLoaded', function() {
     const toggleButtons = document.querySelectorAll('.password-toggle');
     toggleButtons.forEach(btn => setupPasswordToggle(btn));
+    const usernameFromCookie = getCookie('username');
+    if (usernameFromCookie) {
+        currentUser = usernameFromCookie;
+        updateAuthButton();
+        updateCabinetView();
+        checkAuth();
+    } else {
+        checkAuth();
+    }
 });
 
 (function setupCookieToast() {
