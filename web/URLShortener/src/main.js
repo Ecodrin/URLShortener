@@ -16,21 +16,41 @@ const modalClose = document.querySelector('.close-btn');
 const statsContainer = document.getElementById('stats-table-container');
 
 function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
+    const matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    let cookieVal = matches ? decodeURIComponent(matches[1]) : null;
+
+    if (!cookieVal) {
+        try {
+            cookieVal = localStorage.getItem(name);
+            if (cookieVal) {
+                setCookie(name, cookieVal, 7);
+            }
+        } catch (e) {
+            console.warn("localStorage недоступен");
+        }
+    }
+    return cookieVal;
 }
 
 function setCookie(name, value, days = 7) {
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     const expires = `expires=${date.toUTCString()}`;
-    document.cookie = `${name}=${value}; ${expires}; path=/`;
+    document.cookie = `${name}=${encodeURIComponent(value)}; ${expires}; path=/; SameSite=Lax`;
+
+    try {
+        localStorage.setItem(name, value);
+    } catch (e) {}
 }
 
 function deleteCookie(name) {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+
+    try {
+        localStorage.removeItem(name);
+    } catch (e) {}
 }
 
 function showError(element, message) {
@@ -85,29 +105,31 @@ async function checkAuth() {
     console.log('Проверка авторизации...');
     try {
         const response = await fetch('/linksinfo', { credentials: 'include' });
+
         if (response.ok) {
             const links = await response.json();
             userLinks = Array.isArray(links) ? links : [];
-            const username = getCookie('username');
-            if (username) {
-                currentUser = username;
-            } else {
-                currentUser = 'Пользователь';
-                setCookie('username', currentUser, 7);
+            if (!currentUser) {
+                const username = getCookie('username');
+                currentUser = username || 'Пользователь';
+                if (!username) setCookie('username', currentUser, 7);
             }
             updateAuthButton();
             updateCabinetView();
-        } else {
+
+        } else if (response.status === 401) {
             deleteCookie('username');
             currentUser = null;
             userLinks = [];
             updateAuthButton();
             updateCabinetView();
             resetShortUrlAndQR();
+
+        } else {
+            console.warn(`Сервер вернул ${response.status}, сохраняем текущее состояние`);
         }
     } catch (error) {
-        console.error('Ошибка проверки авторизации:', error);
-        userLinks = [];
+        console.error('Ошибка сети:', error);
     }
 }
 
@@ -695,8 +717,12 @@ function setupPasswordToggle(toggleButton) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('document.cookie:', document.cookie);
+    console.log('getCookie("username"):', getCookie('username'));
+
     const toggleButtons = document.querySelectorAll('.password-toggle');
     toggleButtons.forEach(btn => setupPasswordToggle(btn));
+
     const usernameFromCookie = getCookie('username');
     if (usernameFromCookie) {
         currentUser = usernameFromCookie;
