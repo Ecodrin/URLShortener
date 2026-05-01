@@ -256,7 +256,7 @@ func (server *Server) AuthHandler(w http.ResponseWriter, r *http.Request) {
 func (server *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("session_id")
 	if err != nil {
-		http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
+		http.Error(w, "no session", http.StatusUnauthorized)
 		return
 	}
 
@@ -404,7 +404,7 @@ func (server *Server) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not exist link", http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Type", "	")
 	qr, err := qrcode.New(link.Link, qrcode.High)
 	if err != nil {
 		server.logger.Println("error in GenerateQRCode qrcode.New: ", err)
@@ -425,14 +425,14 @@ func (server *Server) CheckAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_id")
 		if err != nil || (!cookie.Expires.IsZero() && time.Now().After(cookie.Expires)) {
-			http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
+			http.Error(w, "no session", http.StatusUnauthorized)
 			return
 		}
 		user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
 		if err != nil {
 			cookie.Expires = time.Now().AddDate(0, 0, -1)
 			http.SetCookie(w, cookie)
-			http.Error(w, err.Error(), http.StatusNonAuthoritativeInfo)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 		ctx := context.WithValue(r.Context(), "user", user)
