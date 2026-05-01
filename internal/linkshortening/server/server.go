@@ -356,10 +356,12 @@ func (server *Server) GetLinkInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	var link handlers.LinkRequest
-	err := json.NewDecoder(r.Body).Decode(&link)
-	if err != nil {
-		http.Error(w, "incorrect json request", http.StatusBadRequest)
+
+	link := handlers.LinkRequest{
+		Link: r.URL.Query().Get("link"),
+	}
+	if len(link.Link) == 0 {
+		http.Error(w, "link not in query", http.StatusBadRequest)
 		return
 	}
 
@@ -382,18 +384,14 @@ func (server *Server) GetLinkInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
-	var link handlers.LinkRequest
-	err := json.NewDecoder(r.Body).Decode(&link)
-	if err != nil {
-		server.logger.Println("error in GenerateQRCode json:", err)
-		http.Error(w, "incorrect json body", http.StatusBadRequest)
+	link := handlers.LinkRequest{
+		Link: r.URL.Query().Get("link"),
+	}
+	if len(link.Link) == 0 {
+		http.Error(w, "link not in query", http.StatusBadRequest)
 		return
 	}
 
-	if strings.LastIndex(link.Link, "/") == -1 {
-		http.Error(w, "incorrect link", http.StatusBadRequest)
-		return
-	}
 	linkWithoutPrefix := link.Link[strings.LastIndex(link.Link, "/")+1:]
 	ok, err := db.IsExistDstLink(server.DB, linkWithoutPrefix)
 	if err != nil {
@@ -457,19 +455,19 @@ func StartServer() *Server {
 	server.mux.HandleFunc("POST /auth", server.AuthHandler)
 	server.mux.HandleFunc("POST /registr", server.RegisterHandler)
 	server.mux.HandleFunc("POST /logout", server.LogoutHandler)
-	server.mux.HandleFunc("POST /generateqrcode", server.GenerateQRCode)
+	server.mux.HandleFunc("GET /generateqrcode", server.GenerateQRCode)
 
 	AuthMux := http.NewServeMux()
 	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
 	AuthMux.HandleFunc("POST /updatesrclink", server.UpdateSrcLinkHandler)
 	AuthMux.HandleFunc("GET /linksinfo", server.GetLinksInfo)
-	AuthMux.HandleFunc("POST /linkinfo", server.GetLinkInfo)
+	AuthMux.HandleFunc("GET /linkinfo", server.GetLinkInfo)
 
 	AuthHandler := server.CheckAuth(AuthMux)
 	server.mux.Handle("POST /deletelink", AuthHandler)
 	server.mux.Handle("POST /updatesrclink", AuthHandler)
 	server.mux.Handle("GET /linksinfo", AuthHandler)
-	server.mux.Handle("POST /linkinfo", AuthHandler)
+	server.mux.Handle("GET /linkinfo", AuthHandler)
 
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 
