@@ -404,7 +404,7 @@ func (server *Server) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not exist link", http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "	")
+	w.Header().Set("Content-Type", "image/png")
 	qr, err := qrcode.New(link.Link, qrcode.High)
 	if err != nil {
 		server.logger.Println("error in GenerateQRCode qrcode.New: ", err)
