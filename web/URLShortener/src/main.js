@@ -414,11 +414,10 @@ async function showStats(index) {
     }
     const link = userLinks[index];
     try {
-        const response = await fetch('/linkinfo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ link: link.dst_link })
+        const url = `/linkinfo?link=${encodeURIComponent(link)}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'include'
         });
         if (!response.ok) {
             if (statsContainer) statsContainer.innerHTML = `<p class="error-message">Ошибка загрузки статистики: ${response.status}</p>`;
@@ -430,7 +429,7 @@ async function showStats(index) {
         if (stats && stats.length > 0) {
             html = '<table><thead><tr><th>Браузер</th><th>Время перехода</th><th>ID ссылки</th></tr></thead><tbody>';
             stats.forEach(row => {
-                const date = new Date(row.timestamp)
+                const date = new Date(row.timestamp);
                 html += `<tr><td>${row.browser || ''}</td><td>${date.toLocaleString() || ''}</td><td>${row.link_id || ''}</td></tr>`;
             });
             html += '</tbody></table>';
@@ -548,21 +547,20 @@ async function downloadQR(index) {
     }
     const link = userLinks[index].dst_link;
     try {
-        const response = await fetch('/generateqrcode', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ link })
+        const url = `/generateqrcode?link=${encodeURIComponent(link)}`;
+        const response = await fetch(url, {
+            method: 'GET'
         });
         if (!response.ok) throw new Error('Ошибка генерации QR-кода');
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
+        const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
+        a.href = blobUrl;
         a.download = `qrcode-${index}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(blobUrl);
     } catch (error) {
         console.error('Ошибка скачивания QR-кода:', error);
         showError(cabinetMessage, 'Не удалось скачать QR-код');
@@ -630,10 +628,9 @@ function qrcode_generation() {
         console.error('Нет короткой ссылки для генерации QR-кода');
         return;
     }
-    fetch('/generateqrcode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 'link': shortUrl })
+    const url = `/generateqrcode?link=${encodeURIComponent(shortUrl)}`;
+    fetch(url, {
+        method: 'GET'
     })
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
