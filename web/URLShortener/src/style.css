@@ -1,8 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
 
 body {
-  overflow-x: hidden;
-  width: 100%;
   margin: 0;
   min-height: 100vh;
   display: flex;
@@ -19,6 +17,7 @@ body {
 .wrapper {
   width: 100%;
   max-width: 1200px;
+  margin: 0 auto;  
   padding: 2rem;
   box-sizing: border-box;
   text-align: center;
@@ -334,6 +333,7 @@ img:not([src]) {
 .view {
   display: none;
   width: 100%;
+  margin: 0 auto; 
 }
 .view.active {
   display: block;
@@ -526,12 +526,6 @@ img:not([src]) {
   position: relative;
   padding: 2rem;
 }
-
-.modal-content h3 {
-  text-align: left;
-  margin-left: 0.5rem;
-}
-
 .close-btn {
   position: absolute;
   top: 1rem;
@@ -933,62 +927,56 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.link-actions {
-  margin-left: auto;
-}
-
 @media (max-width: 768px) {
+  body {
+    overflow-x: hidden;  
+  }
+  .wrapper {
+    padding: 1rem;
+  }
+  .cabinet-wrapper {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+  }
+  .form-card, 
+  .links-card {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .links-card {
+    padding: 1.5rem;
+  }
   .link-item {
     flex-direction: column;
-    align-items: stretch;
-  }
-  .link-actions {
-    margin-left: 0;
-    justify-content: flex-start;
-    width: 100%;
-    margin-top: 0.75rem;
+    align-items: center;
+    text-align: center;
+    padding: 1rem;
   }
   .link-info {
     width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .link-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-  .link-actions button {
-    flex: 1 0 auto;
-    min-width: 90px;
+    margin-bottom: 1rem;
     text-align: center;
-    padding: 0.5rem 0.75rem;
   }
-}
-
-button, input, .btn, .copy-btn {
-  font-size: 16px;
-}
-
-/* Для всех контейнеров на мобильных */
-@media (max-width: 768px) {
-  .wrapper {
-    padding: 1rem;
-    overflow-x: hidden;
-  }
-  .cabinet-wrapper {
-    max-width: 100%;
-  }
-  .links-card {
-    padding: 1rem;
-  }
-  .link-item {
-    flex-wrap: wrap;
+  .link-info .short-link {
+    word-break: break-word;
+    display: inline-block;
   }
   .link-info .long-link {
     white-space: normal;
-    word-break: break-word;
+    word-break: break-all;
+    margin-top: 0.25rem;
+  }
+  .link-actions {
+    justify-content: center;
+    width: 100%;
+    gap: 0.75rem;
+  }
+  .links-header {
+    flex-direction: column;
+    text-align: center;
   }
 }
