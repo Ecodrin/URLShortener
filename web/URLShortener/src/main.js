@@ -1,3 +1,4 @@
+
 let currentUser = null;
 let userLinks = [];
 
@@ -14,12 +15,49 @@ const modal = document.getElementById('stats-modal');
 const modalClose = document.querySelector('.close-btn');
 const statsContainer = document.getElementById('stats-table-container');
 
+function getCookie(name) {
+    const matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    let cookieVal = matches ? decodeURIComponent(matches[1]) : null;
+
+    if (!cookieVal) {
+        try {
+            cookieVal = localStorage.getItem(name);
+            if (cookieVal) {
+                setCookie(name, cookieVal, 7);
+            }
+        } catch (e) {
+            console.warn("localStorage недоступен");
+        }
+    }
+    return cookieVal;
+}
+
+function setCookie(name, value, days = 7) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = `expires=${date.toUTCString()}`;
+    document.cookie = `${name}=${encodeURIComponent(value)}; ${expires}; path=/; SameSite=Lax`;
+
+    try {
+        localStorage.setItem(name, value);
+    } catch (e) {}
+}
+
+function deleteCookie(name) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+
+    try {
+        localStorage.removeItem(name);
+    } catch (e) {}
+}
+
 function showError(element, message) {
     if (!element) return;
     element.textContent = message;
     element.style.visibility = message ? 'visible' : 'hidden';
 }
-
 
 function clearErrors() {
     showError(authError, '');
@@ -39,58 +77,63 @@ function validateLoginPassword(login, password) {
     if (password.length < 5) {
         return { isValid: false, message: 'Пароль должен содержать не менее 5 символов' };
     }
-
     if (login.length > 50) {
         return { isValid: false, message: 'Логин должен содержать не более 50 символов' };
     }
     if (password.length > 50) {
         return { isValid: false, message: 'Пароль должен содержать не более 50 символов' };
     }
-
     const loginRegex = /^[a-zA-Z0-9]+$/;
     if (!loginRegex.test(login)) {
         return { isValid: false, message: 'Логин может содержать только буквы и цифры' };
     }
-
     const passwordRegex = /^[a-zA-Z0-9_\-!]+$/;
     if (!passwordRegex.test(password)) {
         return { isValid: false, message: 'Пароль может содержать буквы, цифры и символы _ - !' };
     }
-
     return { isValid: true, message: '' };
 }
 
+function resetShortUrlAndQR() {
+    const shortUrlField = document.getElementById('short-url');
+    const qrImage = document.getElementById('qr-image');
+    if (shortUrlField) shortUrlField.value = '';
+    if (qrImage) qrImage.src = '';
+}
 
 async function checkAuth() {
     console.log('Проверка авторизации...');
     try {
         const response = await fetch('/linksinfo', { credentials: 'include' });
-        console.log('Ответ /linksinfo:', response.status);
+
         if (response.ok) {
             const links = await response.json();
             userLinks = Array.isArray(links) ? links : [];
-            currentUser = sessionStorage.getItem('currentUser') || 'Пользователь';
-            console.log('Пользователь авторизован:', currentUser);
+            if (!currentUser) {
+                const username = getCookie('username');
+                currentUser = username || 'Пользователь';
+                if (!username) setCookie('username', currentUser, 7);
+            }
             updateAuthButton();
             updateCabinetView();
-        } else {
-            console.log('Пользователь не авторизован');
-            sessionStorage.removeItem('currentUser');
+
+        } else if (response.status === 401) {
+            deleteCookie('username');
             currentUser = null;
             userLinks = [];
             updateAuthButton();
             updateCabinetView();
+            resetShortUrlAndQR();
+
+        } else {
+            console.warn(`Сервер вернул ${response.status}, сохраняем текущее состояние`);
         }
     } catch (error) {
-        console.error('Ошибка проверки авторизации:', error);
-        userLinks = [];
+        console.error('Ошибка сети:', error);
     }
 }
-checkAuth();
-
 
 function showMainView() {
-    console.log('Переключение на главную');
     mainView.classList.add('active');
     cabinetView.classList.remove('active');
     updateAuthButton();
@@ -98,7 +141,6 @@ function showMainView() {
 }
 
 function showCabinetView() {
-    console.log('Переключение на личный кабинет');
     mainView.classList.remove('active');
     cabinetView.classList.add('active');
     updateAuthButton();
@@ -113,40 +155,33 @@ authBtn.addEventListener('click', () => {
     }
 });
 
-
 function updateCabinetView() {
-    console.log('updateCabinetView, currentUser =', currentUser);
     const authForms = document.getElementById('auth-forms');
     const linksList = document.getElementById('links-list');
     if (currentUser) {
-        console.log('Показываем список ссылок');
         if (authForms) authForms.classList.add('hidden');
         if (linksList) linksList.classList.remove('hidden');
         renderLinks();
     } else {
-        console.log('Показываем форму входа');
         if (authForms) authForms.classList.remove('hidden');
         if (linksList) linksList.classList.add('hidden');
         if (authLogin) authLogin.value = '';
         if (authPassword) authPassword.value = '';
         showError(authError, '');
+        resetShortUrlAndQR();
     }
 }
 
-
 async function loadLinks() {
-    console.log('Загрузка ссылок...');
     try {
         const response = await fetch('/linksinfo', { credentials: 'include' });
-        console.log('Ответ /linksinfo в loadLinks:', response.status);
         if (response.ok) {
             const links = await response.json();
             userLinks = Array.isArray(links) ? links : [];
             renderLinks();
             showError(cabinetMessage, '');
         } else if (response.status === 401) {
-            console.log('Сессия истекла, сбрасываем пользователя');
-            sessionStorage.removeItem('currentUser');
+            deleteCookie('username');
             currentUser = null;
             userLinks = [];
             updateAuthButton();
@@ -163,20 +198,13 @@ async function loadLinks() {
 }
 
 document.getElementById('login-btn')?.addEventListener('click', async () => {
-    console.log('Клик по кнопке Войти');
-    if (!authLogin || !authPassword) {
-        console.error('Поля не найдены');
-        return;
-    }
     const login = authLogin.value.trim();
     const password = authPassword.value;
-
     const validation = validateLoginPassword(login, password);
     if (!validation.isValid) {
         showError(authError, validation.message);
         return;
     }
-
     try {
         const response = await fetch('/auth', {
             method: 'POST',
@@ -184,28 +212,22 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
             credentials: 'include',
             body: JSON.stringify({ login, password })
         });
-        console.log('Ответ /auth:', response.status);
         if (response.ok) {
             currentUser = login;
-            sessionStorage.setItem('currentUser', login);
+            setCookie('username', login, 7);
             updateAuthButton();
             updateCabinetView();
             showCabinetView();
             await loadLinks();
             showError(authError, '');
-            if (authLogin) authLogin.value = '';
-            if (authPassword) authPassword.value = '';
+            authLogin.value = '';
+            authPassword.value = '';
+            resetShortUrlAndQR();
         } else {
-            let errMsg;
-            try {
-                errMsg = await response.text();
-            } catch (e) {
-                errMsg = '';
-            }
             if (response.status >= 500) {
                 showError(authError, 'Ошибка сервера. Попробуйте позже.');
             } else if (response.status === 400) {
-                showError(authError,  'Неверный логин или пароль');
+                showError(authError, 'Неверный логин или пароль');
             } else {
                 showError(authError, 'Ошибка авторизации');
             }
@@ -217,20 +239,13 @@ document.getElementById('login-btn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('register-btn')?.addEventListener('click', async () => {
-    console.log('Клик по кнопке Зарегистрироваться');
-    if (!authLogin || !authPassword) {
-        console.error('Поля не найдены');
-        return;
-    }
     const login = authLogin.value.trim();
     const password = authPassword.value;
-
     const validation = validateLoginPassword(login, password);
     if (!validation.isValid) {
         showError(authError, validation.message);
         return;
     }
-
     try {
         const response = await fetch('/registr', {
             method: 'POST',
@@ -238,30 +253,24 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
             credentials: 'include',
             body: JSON.stringify({ login, password })
         });
-        console.log('Ответ /registr:', response.status);
         if (response.ok) {
             currentUser = login;
-            sessionStorage.setItem('currentUser', login);
+            setCookie('username', login, 7);
             updateAuthButton();
             updateCabinetView();
             showCabinetView();
             await loadLinks();
             showError(authError, '');
-            if (authLogin) authLogin.value = '';
-            if (authPassword) authPassword.value = '';
+            authLogin.value = '';
+            authPassword.value = '';
+            resetShortUrlAndQR();
         } else {
-            let errMsg;
-            try {
-                errMsg = await response.text();
-            } catch (e) {
-                errMsg = '';
-            }
             if (response.status >= 500) {
                 showError(authError, 'Ошибка сервера. Пожалуйста, попробуйте позже.');
             } else if (response.status === 400) {
                 showError(authError, 'Пользователь уже существует');
             } else {
-                showError(authError,  'Ошибка регистрации');
+                showError(authError, 'Ошибка регистрации');
             }
         }
     } catch (error) {
@@ -271,20 +280,19 @@ document.getElementById('register-btn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('logout-btn')?.addEventListener('click', async () => {
-    console.log('Выход из аккаунта');
     if (modal) modal.classList.add('hidden');
-
     try {
         await fetch('/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {
         console.error('Ошибка при выходе:', e);
     } finally {
-        sessionStorage.removeItem('currentUser');
+        deleteCookie('username');
         currentUser = null;
         userLinks = [];
         updateAuthButton();
         updateCabinetView();
         showMainView();
+        resetShortUrlAndQR();
     }
 });
 
@@ -311,7 +319,6 @@ function renderLinks() {
             </div>
         </div>
     `).join('');
-
     container.addEventListener('click', handleLinkActions);
 }
 
@@ -346,11 +353,9 @@ async function handleLinkActions(e) {
 
 async function deleteLink(index) {
     if (!Array.isArray(userLinks) || !userLinks[index]) {
-        console.warn('Ссылка с индексом', index, 'не найдена. Обновляем список...');
         await loadLinks();
         return;
     }
-
     const link = userLinks[index];
     try {
         const response = await fetch('/deletelink', {
@@ -361,6 +366,10 @@ async function deleteLink(index) {
         });
         if (response.ok) {
             await loadLinks();
+            const shortUrlField = document.getElementById('short-url');
+            if (shortUrlField && shortUrlField.value === link.dst_link) {
+                resetShortUrlAndQR();
+            }
         } else {
             const errMsg = await response.text();
             showError(cabinetMessage, errMsg || 'Ошибка при удалении');
@@ -372,7 +381,6 @@ async function deleteLink(index) {
 }
 
 function copyToClipboard(text, onError) {
-    // Современный API
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).catch(err => {
             console.error('Clipboard API error:', err);
@@ -380,8 +388,6 @@ function copyToClipboard(text, onError) {
         });
         return;
     }
-
-    // Fallback для старых браузеров и небезопасных контекстов
     const textArea = document.createElement('textarea');
     textArea.value = text;
     textArea.style.position = 'fixed';
@@ -390,13 +396,9 @@ function copyToClipboard(text, onError) {
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
-
     try {
         const successful = document.execCommand('copy');
-        if (!successful) {
-            console.error('Fallback copy failed');
-            if (onError) onError();
-        }
+        if (!successful && onError) onError();
     } catch (err) {
         console.error('Fallback copy error:', err);
         if (onError) onError();
@@ -410,42 +412,30 @@ async function showStats(index) {
         await loadLinks();
         return;
     }
-
     const link = userLinks[index];
     try {
-        const response = await fetch('/linkinfo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ link: link.dst_link })
+        const url = `/linkinfo?link=${encodeURIComponent(link)}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'include'
         });
-
         if (!response.ok) {
             if (statsContainer) statsContainer.innerHTML = `<p class="error-message">Ошибка загрузки статистики: ${response.status}</p>`;
             if (modal) modal.classList.remove('hidden');
             return;
         }
-
         const stats = await response.json();
-
         let html = '';
         if (stats && stats.length > 0) {
-            html = '<table><thead><tr>';
-            html += '<th>Браузер</th><th>Время перехода</th><th>ID ссылки</th>';
-            html += '</tr></thead><tbody>';
-
+            html = '<table><thead><tr><th>Браузер</th><th>Время перехода</th><th>ID ссылки</th></tr></thead><tbody>';
             stats.forEach(row => {
-                html += '<tr>';
-                html += `<td>${row.browser || ''}</td>`;
-                html += `<td>${row.timestamp || ''}</td>`;
-                html += `<td>${row.link_id || ''}</td>`;
-                html += '</tr>';
+                const date = new Date(row.timestamp);
+                html += `<tr><td>${row.browser || ''}</td><td>${date.toLocaleString() || ''}</td><td>${row.link_id || ''}</td></tr>`;
             });
             html += '</tbody></table>';
         } else {
             html = '<p>Пока нет переходов по этой ссылке.</p>';
         }
-
         if (statsContainer) statsContainer.innerHTML = html;
         if (modal) modal.classList.remove('hidden');
     } catch (error) {
@@ -460,21 +450,17 @@ function enableInlineEdit(index) {
         loadLinks();
         return;
     }
-
     const linkItem = document.querySelector(`.link-item[data-index="${index}"]`);
     if (!linkItem) return;
     if (linkItem.querySelector('.edit-input')) return;
-
     const longLinkDiv = linkItem.querySelector('.long-link');
     const currentSrc = longLinkDiv.textContent;
-
     const input = document.createElement('input');
     input.type = 'text';
     input.value = currentSrc;
     input.className = 'url-input edit-input';
     input.setAttribute('data-original', currentSrc);
     longLinkDiv.replaceWith(input);
-
     const actionsDiv = linkItem.querySelector('.link-actions');
     const oldButtonsHtml = actionsDiv.innerHTML;
     actionsDiv.setAttribute('data-old-buttons', oldButtonsHtml);
@@ -491,16 +477,13 @@ async function saveEdit(index) {
     }
     const linkItem = document.querySelector(`.link-item[data-index="${index}"]`);
     if (!linkItem) return;
-
     const input = linkItem.querySelector('.edit-input');
     if (!input) return;
-
     const newSrc = input.value.trim();
     if (!newSrc) {
         showError(cabinetMessage, 'Ссылка не может быть пустой');
         return;
     }
-
     const link = userLinks[index];
     try {
         const response = await fetch('/updatesrclink', {
@@ -530,17 +513,14 @@ async function saveEdit(index) {
 function cancelEdit(index) {
     const linkItem = document.querySelector(`.link-item[data-index="${index}"]`);
     if (!linkItem) return;
-
     const input = linkItem.querySelector('.edit-input');
     if (!input) return;
-
     const originalText = input.dataset.original || (Array.isArray(userLinks) && userLinks[index] ? userLinks[index].src_link : '');
     const newDiv = document.createElement('div');
     newDiv.className = 'long-link';
     newDiv.textContent = originalText;
     newDiv.setAttribute('title', originalText);
     input.replaceWith(newDiv);
-
     const actionsDiv = linkItem.querySelector('.link-actions');
     const oldButtonsHtml = actionsDiv.dataset.oldButtons;
     if (oldButtonsHtml) {
@@ -560,7 +540,6 @@ async function copyLink(index) {
     });
 }
 
-
 async function downloadQR(index) {
     if (!Array.isArray(userLinks) || !userLinks[index]) {
         await loadLinks();
@@ -568,21 +547,20 @@ async function downloadQR(index) {
     }
     const link = userLinks[index].dst_link;
     try {
-        const response = await fetch('/generateqrcode', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ link })
+        const url = `/generateqrcode?link=${encodeURIComponent(link)}`;
+        const response = await fetch(url, {
+            method: 'GET'
         });
         if (!response.ok) throw new Error('Ошибка генерации QR-кода');
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
+        const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
+        a.href = blobUrl;
         a.download = `qrcode-${index}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(blobUrl);
     } catch (error) {
         console.error('Ошибка скачивания QR-кода:', error);
         showError(cabinetMessage, 'Не удалось скачать QR-код');
@@ -594,21 +572,17 @@ if (modalClose) {
         modal.classList.add('hidden');
     });
 }
-
 window.addEventListener('click', (e) => {
     if (e.target === modal) {
         modal.classList.add('hidden');
     }
 });
 
-
 function send_link() {
     const longUrlInput = document.getElementById('long-url');
     const errorDiv = document.getElementById('shorten-error');
     if (!longUrlInput || !errorDiv) return;
-
     const url = longUrlInput.value.trim();
-
     showError(errorDiv, '');
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -623,7 +597,6 @@ function send_link() {
     })
         .then(response => {
             if (!response.ok) {
-
                 return response.text().then(text => {
                     throw new Error(text || `HTTP error! status: ${response.status}`);
                 });
@@ -645,19 +618,19 @@ function send_link() {
                 errorMsg = 'Ссылка неправильного формата';
             }
             showError(errorDiv, errorMsg || 'Не удалось сократить ссылку');
+            resetShortUrlAndQR();
         });
 }
 
 function qrcode_generation() {
     const shortUrl = document.getElementById('short-url')?.value;
     if (!shortUrl) {
-        console.error('No short url found.');
+        console.error('Нет короткой ссылки для генерации QR-кода');
         return;
     }
-    fetch('/generateqrcode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 'link': shortUrl })
+    const url = `/generateqrcode?link=${encodeURIComponent(shortUrl)}`;
+    fetch(url, {
+        method: 'GET'
     })
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -671,21 +644,30 @@ function qrcode_generation() {
             };
             reader.readAsDataURL(blob);
         })
-        .catch(error => console.error('Failed to generate qr-code: ', error));
+        .catch(error => {
+            console.error('Failed to generate qr-code: ', error);
+            resetShortUrlAndQR();
+        });
 }
 
 function copyPlainText() {
     const content = document.getElementById('short-url')?.value;
     if (!content) return;
-
     copyToClipboard(content, () => {
         console.warn('Не удалось скопировать текст');
     });
 }
 
 function downloadImage(imgElement) {
-    if (!imgElement.complete) {
-        console.warn('Image not loaded yet');
+    const shortUrlField = document.getElementById('short-url');
+    if (!shortUrlField || !shortUrlField.value) {
+        console.warn('Нет короткой ссылки, скачивание QR-кода невозможно');
+        showError(document.getElementById('shorten-error'), 'Сначала создайте короткую ссылку');
+        return;
+    }
+    if (!imgElement.complete || !imgElement.src || imgElement.src === '') {
+        console.warn('QR-код не загружен');
+        showError(document.getElementById('shorten-error'), 'QR-код не сгенерирован');
         return;
     }
     const imageUrl = imgElement.src;
@@ -702,10 +684,10 @@ document.getElementById('generate-btn')?.addEventListener('click', send_link);
 document.getElementById('copy-btn')?.addEventListener('click', copyPlainText);
 document.getElementById('download-qr-btn')?.addEventListener('click', function() {
     const img = document.getElementById('qr-image');
-    if (img && img.src && !img.src.endsWith('""') && img.src !== '') {
+    if (img) {
         downloadImage(img);
     } else {
-        console.warn('QR code not generated yet');
+        console.warn('Элемент QR-кода не найден');
     }
 });
 
@@ -717,7 +699,6 @@ function setupPasswordToggle(toggleButton) {
         if (!passwordInput) return;
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-
         const eyeOpen = this.querySelector('.eye-icon:not(.eye-slash)');
         const eyeSlash = this.querySelector('.eye-slash');
         if (eyeOpen && eyeSlash) {
@@ -733,22 +714,32 @@ function setupPasswordToggle(toggleButton) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('document.cookie:', document.cookie);
+    console.log('getCookie("username"):', getCookie('username'));
+
     const toggleButtons = document.querySelectorAll('.password-toggle');
     toggleButtons.forEach(btn => setupPasswordToggle(btn));
+
+    const usernameFromCookie = getCookie('username');
+    if (usernameFromCookie) {
+        currentUser = usernameFromCookie;
+        updateAuthButton();
+        updateCabinetView();
+        checkAuth();
+    } else {
+        checkAuth();
+    }
 });
 
 (function setupCookieToast() {
     const COOKIE_CONSENT_KEY = 'cookieConsent';
     const popup = document.getElementById('cookie-popup');
     const closeBtn = document.getElementById('cookie-close');
-
     if (!popup || !closeBtn) return;
-
     const consentGiven = localStorage.getItem(COOKIE_CONSENT_KEY);
     if (!consentGiven) {
         popup.classList.remove('hidden');
     }
-
     closeBtn.addEventListener('click', () => {
         localStorage.setItem(COOKIE_CONSENT_KEY, 'true');
         popup.classList.add('hidden');
@@ -759,14 +750,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const STUDY_BANNER_KEY = 'studyBannerClosed';
     const banner = document.getElementById('study-banner');
     const closeBtn = document.getElementById('close-banner');
-
     if (!banner || !closeBtn) return;
-
     const isClosed = localStorage.getItem(STUDY_BANNER_KEY);
     if (!isClosed) {
         banner.classList.remove('hidden');
     }
-
     closeBtn.addEventListener('click', () => {
         localStorage.setItem(STUDY_BANNER_KEY, 'true');
         banner.classList.add('hidden');

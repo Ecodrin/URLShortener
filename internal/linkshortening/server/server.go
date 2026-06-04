@@ -174,11 +174,24 @@ func (server *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cookie := http.Cookie{
-		Name:    "session_id",
-		Value:   jwtToken,
-		Expires: time.Now().Add(24 * time.Hour),
+		Name:     "session_id",
+		Value:    jwtToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, &cookie)
+
+	cookie = http.Cookie{
+		Name:     "username",
+		Value:    msg.Login,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	http.SetCookie(w, &cookie)
+
 	w.WriteHeader(http.StatusOK)
 	server.logger.Printf("Create user login '%s' password '%s'\n", msg.Login, msg.Password)
 }
@@ -217,19 +230,33 @@ func (server *Server) AuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cookie := http.Cookie{
-		Name:    "session_id",
-		Value:   jwtToken,
-		Expires: time.Now().Add(24 * time.Hour),
+		Name:     "session_id",
+		Value:    jwtToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
-	server.logger.Println("user", msg.Login, "auth successful")
+
 	http.SetCookie(w, &cookie)
+
+	cookie = http.Cookie{
+		Name:     "username",
+		Value:    user.Login,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	http.SetCookie(w, &cookie)
+
+	server.logger.Println("user", msg.Login, "auth successful")
 	w.WriteHeader(http.StatusOK)
 }
 
 func (server *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("session_id")
 	if err != nil {
-		http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
+		http.Error(w, "no session", http.StatusUnauthorized)
 		return
 	}
 
@@ -329,10 +356,12 @@ func (server *Server) GetLinkInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	var link handlers.LinkRequest
-	err := json.NewDecoder(r.Body).Decode(&link)
-	if err != nil {
-		http.Error(w, "incorrect json request", http.StatusBadRequest)
+
+	link := handlers.LinkRequest{
+		Link: r.URL.Query().Get("link"),
+	}
+	if len(link.Link) == 0 {
+		http.Error(w, "link not in query", http.StatusBadRequest)
 		return
 	}
 
@@ -355,18 +384,14 @@ func (server *Server) GetLinkInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) GenerateQRCode(w http.ResponseWriter, r *http.Request) {
-	var link handlers.LinkRequest
-	err := json.NewDecoder(r.Body).Decode(&link)
-	if err != nil {
-		server.logger.Println("error in GenerateQRCode json:", err)
-		http.Error(w, "incorrect json body", http.StatusBadRequest)
+	link := handlers.LinkRequest{
+		Link: r.URL.Query().Get("link"),
+	}
+	if len(link.Link) == 0 {
+		http.Error(w, "link not in query", http.StatusBadRequest)
 		return
 	}
 
-	if strings.LastIndex(link.Link, "/") == -1 {
-		http.Error(w, "incorrect link", http.StatusBadRequest)
-		return
-	}
 	linkWithoutPrefix := link.Link[strings.LastIndex(link.Link, "/")+1:]
 	ok, err := db.IsExistDstLink(server.DB, linkWithoutPrefix)
 	if err != nil {
@@ -400,14 +425,14 @@ func (server *Server) CheckAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_id")
 		if err != nil || (!cookie.Expires.IsZero() && time.Now().After(cookie.Expires)) {
-			http.Error(w, "no session", http.StatusNonAuthoritativeInfo)
+			http.Error(w, "no session", http.StatusUnauthorized)
 			return
 		}
 		user, err := handlers.GetUserFromJWTToken(cookie.Value, server.config.JWTSecret)
 		if err != nil {
 			cookie.Expires = time.Now().AddDate(0, 0, -1)
 			http.SetCookie(w, cookie)
-			http.Error(w, err.Error(), http.StatusNonAuthoritativeInfo)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 		ctx := context.WithValue(r.Context(), "user", user)
@@ -430,19 +455,19 @@ func StartServer() *Server {
 	server.mux.HandleFunc("POST /auth", server.AuthHandler)
 	server.mux.HandleFunc("POST /registr", server.RegisterHandler)
 	server.mux.HandleFunc("POST /logout", server.LogoutHandler)
-	server.mux.HandleFunc("POST /generateqrcode", server.GenerateQRCode)
+	server.mux.HandleFunc("GET /generateqrcode", server.GenerateQRCode)
 
 	AuthMux := http.NewServeMux()
 	AuthMux.HandleFunc("POST /deletelink", server.DeleteLinkHandler)
 	AuthMux.HandleFunc("POST /updatesrclink", server.UpdateSrcLinkHandler)
 	AuthMux.HandleFunc("GET /linksinfo", server.GetLinksInfo)
-	AuthMux.HandleFunc("POST /linkinfo", server.GetLinkInfo)
+	AuthMux.HandleFunc("GET /linkinfo", server.GetLinkInfo)
 
 	AuthHandler := server.CheckAuth(AuthMux)
 	server.mux.Handle("POST /deletelink", AuthHandler)
 	server.mux.Handle("POST /updatesrclink", AuthHandler)
 	server.mux.Handle("GET /linksinfo", AuthHandler)
-	server.mux.Handle("POST /linkinfo", AuthHandler)
+	server.mux.Handle("GET /linkinfo", AuthHandler)
 
 	server.mux.HandleFunc("/{id}", server.RedirectHandler)
 
