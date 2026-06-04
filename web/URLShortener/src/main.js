@@ -386,25 +386,40 @@ function copyToClipboard(text, onError) {
             console.error('Clipboard API error:', err);
             if (onError) onError();
         });
-        return;
+    } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        textArea.style.fontSize = '16px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            const successful = document.execCommand('copy');
+            if (!successful && onError) onError();
+        } catch (err) {
+            console.error('Fallback copy error:', err);
+            if (onError) onError();
+        } finally {
+            document.body.removeChild(textArea);
+        }
     }
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-        const successful = document.execCommand('copy');
-        if (!successful && onError) onError();
-    } catch (err) {
-        console.error('Fallback copy error:', err);
-        if (onError) onError();
-    } finally {
-        document.body.removeChild(textArea);
-    }
+}
+
+function getBrowserName(userAgent) {
+    if (!userAgent) return 'Неизвестно';
+    const ua = userAgent.toLowerCase();
+
+    if (ua.includes('edg')) return 'Edge';
+    if (ua.includes('opr') || ua.includes('opera')) return 'Opera';
+    if (ua.includes('chrome') && !ua.includes('edg')) return 'Chrome';
+    if (ua.includes('safari') && !ua.includes('chrome')) return 'Safari';
+    if (ua.includes('firefox')) return 'Firefox';
+    if (ua.includes('trident') || ua.includes('msie')) return 'Internet Explorer';
+
+    return 'Другой';
 }
 
 async function showStats(index) {
@@ -430,7 +445,8 @@ async function showStats(index) {
             html = '<table><thead><tr><th>Браузер</th><th>Время перехода</th><th>ID ссылки</th></tr></thead><tbody>';
             stats.forEach(row => {
                 const date = new Date(row.timestamp);
-                html += `<tr><td>${row.browser || ''}</td><td>${date.toLocaleString() || ''}</td><td>${row.link_id || ''}</td></tr>`;
+                const browserName = getBrowserName(row.browser);
+                html += `<tr><td>${browserName}</td><td>${date.toLocaleString()}</td><td>${row.link_id || ''}</td></tr>`;
             });
             html += '</tbody></table>';
         } else {
