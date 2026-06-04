@@ -412,7 +412,7 @@ async function showStats(index) {
         await loadLinks();
         return;
     }
-    const link = userLinks[index];
+    const link = userLinks[index].dst_link;
     try {
         const url = `/linkinfo?link=${encodeURIComponent(link)}`;
         const response = await fetch(url, {
