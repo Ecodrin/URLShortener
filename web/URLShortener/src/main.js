@@ -15,6 +15,9 @@ const modal = document.getElementById('stats-modal');
 const modalClose = document.querySelector('.close-btn');
 const statsContainer = document.getElementById('stats-table-container');
 
+const logoutHeaderBtn = document.getElementById('logout-btn');
+
+
 function getCookie(name) {
     const matches = document.cookie.match(new RegExp(
         "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
@@ -161,10 +164,12 @@ function updateCabinetView() {
     if (currentUser) {
         if (authForms) authForms.classList.add('hidden');
         if (linksList) linksList.classList.remove('hidden');
+        if (logoutHeaderBtn) logoutHeaderBtn.classList.remove('hidden');
         renderLinks();
     } else {
         if (authForms) authForms.classList.remove('hidden');
         if (linksList) linksList.classList.add('hidden');
+        if (logoutHeaderBtn) logoutHeaderBtn.classList.add('hidden');
         if (authLogin) authLogin.value = '';
         if (authPassword) authPassword.value = '';
         showError(authError, '');
@@ -293,6 +298,7 @@ document.getElementById('logout-btn')?.addEventListener('click', async () => {
         updateCabinetView();
         showMainView();
         resetShortUrlAndQR();
+        if (logoutHeaderBtn) logoutHeaderBtn.classList.add('hidden');
     }
 });
 
@@ -386,25 +392,32 @@ function copyToClipboard(text, onError) {
             console.error('Clipboard API error:', err);
             if (onError) onError();
         });
-    } else {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        textArea.style.fontSize = '16px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            const successful = document.execCommand('copy');
-            if (!successful && onError) onError();
-        } catch (err) {
-            console.error('Fallback copy error:', err);
-            if (onError) onError();
-        } finally {
-            document.body.removeChild(textArea);
-        }
+        return;
+    }
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.setAttribute('readonly', '');
+    textArea.style.position = 'absolute';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '-9999px';
+    textArea.style.opacity = '0';
+    textArea.style.pointerEvents = 'none';
+    document.body.appendChild(textArea);
+
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+
+    textArea.select();
+    let success = false;
+    try {
+        success = document.execCommand('copy');
+        if (!success && onError) onError();
+    } catch (err) {
+        console.error('Fallback copy error:', err);
+        if (onError) onError();
+    } finally {
+        window.scrollTo(scrollX, scrollY);
+        document.body.removeChild(textArea);
     }
 }
 
@@ -412,12 +425,20 @@ function getBrowserName(userAgent) {
     if (!userAgent) return 'Неизвестно';
     const ua = userAgent.toLowerCase();
 
-    if (ua.includes('edg')) return 'Edge';
-    if (ua.includes('opr') || ua.includes('opera')) return 'Opera';
-    if (ua.includes('chrome') && !ua.includes('edg')) return 'Chrome';
-    if (ua.includes('safari') && !ua.includes('chrome')) return 'Safari';
-    if (ua.includes('firefox')) return 'Firefox';
-    if (ua.includes('trident') || ua.includes('msie')) return 'Internet Explorer';
+    if (/edg/.test(ua)) return 'Microsoft Edge';
+    if (/opr|opera/.test(ua)) return 'Opera';
+    if (/yabrowser|yandex/.test(ua)) return 'Yandex Browser';
+    if (/samsungbrowser/.test(ua)) return 'Samsung Internet';
+    if (/ucbrowser/.test(ua)) return 'UC Browser';
+    if (/vivaldi/.test(ua)) return 'Vivaldi';
+    if (/brave/.test(ua)) return 'Brave';
+
+    if (/chrome/.test(ua) && !/edg|yabrowser|yandex|opr|opera/.test(ua)) {
+        return 'Google Chrome';
+    }
+    if (/safari/.test(ua) && !/chrome/.test(ua)) return 'Safari';
+    if (/firefox/.test(ua)) return 'Firefox';
+    if (/trident|msie/.test(ua)) return 'Internet Explorer';
 
     return 'Другой';
 }
